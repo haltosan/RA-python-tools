@@ -7,15 +7,15 @@ Each file has it's own documentation in a block comment, but feel free to yell a
 
 
 ### Usage
-This is just an example of how I would use this:
+This is just an example of how I would use this (in the python shell):
 
-`
+```
 = RESTART: file analysis.py
 >>> raw = get('1924.txt')
 >>> cleanRaw = cleanFile(raw, pred = p.long, cleaner = cleanChars, cleanArg = p.nameChar, negatePred = False, negateClean = False)
 >>> cleanRaw[:5]
 ['Abaya, Gonzalo, jr, M, Pagsanjan, Laguna, P I Harry Benjamin, BS, Grad, Olean', 'Abbey, Charles Newell,  Cherry Creek Ager Beatrice, A, Tarrytown', 'Abel, Armand Henry, A, Cleveland, Ohio Allen, Dell Keller, Eng, Dallas, Texas', 'Abel, Charles Allen, g, Buffalo Allen, Floyd Benjamin, M, Elmira', 'Abel, Herri Ernest, MD NYC, Elizabeth, N J Allen, Laura Catherine, Ag, C']
 >>> save(cleanRaw, 'example.txt')
-`
+```
 
 This example shows me removing all characters that don't belong in a name and any lines that aren't long (longer than 5 chars). I look at the first 5 elements to make sure I like the output, and save it to a file.
