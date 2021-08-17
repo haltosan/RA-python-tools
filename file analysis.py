@@ -122,7 +122,7 @@ def getSame(chk,other, rems=[' ',',','"']):
 
 def getContext(chk,other, rems=[' ',',','"']):
         '''finds where lines from a check file belong in the raw input file\
-creates context (line before, check line, line after, \n) for merge function'''
+creates context (line before, check line, line after, \n) for merge function''' #used for merge
         outs = ""
         for lc in chk:
                 for i in range(len(other)):
@@ -195,6 +195,8 @@ def merge(inName, contextName, regex=defaultRegex):
 ### CSV FUNCTIONS ###
 #####################
 
+### I know there's most likely already a library for this, but I wrote my own
+
 def csvJoin(texts):
         '''converts list to csv string'''
         outs = ""
@@ -244,6 +246,11 @@ def csvMergeCollumn(fullTexts, collumn, n):
 #######################
 ### CLEAN FUNCTIONS ###
 #######################
+
+### clean functions need 3 arguments: text(s), arg, negate
+### negate needs to be named negate, but it isn't positional
+### the argument is normally a predicate, but it doesn't have to be
+### clean functions are expected to return text(s)
 
 def clean(text,rems=[' ',',','"'], negate = False): #negate for compatibility
         '''remvoes rems text from text/texts'''
