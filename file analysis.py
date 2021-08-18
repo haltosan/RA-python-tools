@@ -16,7 +16,7 @@ defaultRegex = r'(?P<name>[A-Za-z ]+, [A-Za-z ]+)'
 #
 #CHECK FILES: calcScores(raw, check), findLarge(n, scores),
 # getSame(chk,other, rems=[' ',',','"']) getContext(chk,other, rems=[' ',',','"'])
-# merge(inName, contextName, regex=nameAddress)
+# merge(inName, contextName, regex=defaultRegex)
 #
 #CSV: csvJoin(texts), csvSplit(text), csvText(text), csvCollumn(texts, n)
 # csvMergeCollumn(fullTexts, collumn, n)
@@ -25,8 +25,9 @@ defaultRegex = r'(?P<name>[A-Za-z ]+, [A-Za-z ]+)'
 # cleanFile(texts, pred = None, cleaner = clean, cleanArg = ['\t','\ufeff'], negatePred = False, negateClean = False)
 # cleanWords(text, pred, negate = False), cleanChars(text, pred, negate = False)
 # cleanCollumn(texts, n, cleaner = cleanChars, cleanArg = p.nameChar)
+# charStrip(texts, chars)
 #
-#COLLECT: collect(text, regex=name)
+#COLLECT: collect(text, regex=defaultRegex)
 #
 #MISC: headerGrab(texts, headerPred, quite = True), infoGrab(fname, outName)
 # slapThatInfoOn(texts)
@@ -122,7 +123,7 @@ def getSame(chk,other, rems=[' ',',','"']):
 
 def getContext(chk,other, rems=[' ',',','"']):
         '''finds where lines from a check file belong in the raw input file\
-creates context (line before, check line, line after, \n) for merge function''' #used for merge
+creates context (line before, check line, line after, \n) for merge function'''
         outs = ""
         for lc in chk:
                 for i in range(len(other)):
@@ -195,8 +196,6 @@ def merge(inName, contextName, regex=defaultRegex):
 ### CSV FUNCTIONS ###
 #####################
 
-### I know there's most likely already a library for this, but I wrote my own
-
 def csvJoin(texts):
         '''converts list to csv string'''
         outs = ""
@@ -246,11 +245,6 @@ def csvMergeCollumn(fullTexts, collumn, n):
 #######################
 ### CLEAN FUNCTIONS ###
 #######################
-
-### clean functions need 3 arguments: text(s), arg, negate
-### negate needs to be named negate, but it isn't positional
-### the argument is normally a predicate, but it doesn't have to be
-### clean functions are expected to return text(s)
 
 def clean(text,rems=[' ',',','"'], negate = False): #negate for compatibility
         '''remvoes rems text from text/texts'''
@@ -307,7 +301,8 @@ def cleanCollumn(texts, n, cleaner = cleanChars, cleanArg = p.nameChar):
         cleanCol = cleanFile(col, cleaner = cleaner, cleanArg = cleanArg)
         return csvMergeCollumn(texts, cleanCol, n)
 
-def charStripper(texts, chars):
+def charStrip(texts, chars):
+        '''removes chars from tails of texts'''
         if(type(texts) is str):
                 for i in range(len(chars)): #almost worst case has chars list in reverse on the end
                         for char in chars:
@@ -526,12 +521,93 @@ def tim(f = get('1924.txt')):
 
 def george():
         raw = get('1924.txt')
-        names = get('leftover names.txt')
+        names = get('set names2.txt')
         ninfo = []
         for line in raw:
                 for i in range(len(names)):
                         if(names[i] in line):
-                                ninfo.append(line.replace(names[i], '\uffff'))
+                                ninfo.append([names[i],line.replace(names[i], '!')])
                                 names[i] = '\ueeee'
                                 break
         return ninfo, names
+
+def getCol(texts, n):
+        outl = []
+        for i in texts:
+                outl.append(i[n])
+        return outl
+
+def mergeCol(texts, col, n):
+        outl = texts.copy()
+        for i in range(len(texts)):
+                outl[i][n] = col[i]
+        return outl.copy()
+
+def sandra():
+        b = george()
+        ninfo = b[0]
+        names = b[1]
+        p.SHORT_LEN = 3
+        cleanNames = cleanFile(names, p.long, cleaner = None)
+        save(cleanNames, 'leftover names.txt')
+        col1 = getCol(ninfo, 0)
+        col2 = getCol(ninfo, 1)
+        col3 = [None] * len(col2)
+        for i in range(len(col2)):
+                for l in range(len(cleanNames)):
+                        name = cleanNames[l]
+                        if(name in col2[i]):
+                                col3[i] = name
+                                col2[i] = col2[i].replace(name, '@')
+                                cleanNames[i] = '\ueeee'
+                                break
+        f = [[None,None,None]]*len(col1)
+        f = mergeCol(f, col1, 0)
+        f = mergeCol(f, col2, 1)
+        f = mergeCol(f, col3, 2)
+        return f, col3
+
+keep = []
+chk = []
+
+def monica():
+        global keep, chk
+        r1 = r'((A|AChem|Ag|Ar|L|C|M|E|MD|V|Grad|Sp).*)?(?P<name>'
+        r2 = r'([A-Za-z ]+,){2}( jr.)?)(?P<info>.*)$'
+        char = 'A'
+        chk = []
+        keep = []
+        reee = ''
+        f = get('info.txt')
+        for i in range(ord('A'),ord('Z') + 1):
+                char = chr(i)
+                reee = r1 + char + r2
+                nlp = collect(f, reee)
+                keep.append(nlp[0])
+                chk.append(nlp[1])
+                f = nlp[1]
+
+        return keep, chk
+
+info = []
+def rita():
+        #col2[i] may be nlp[0] if we get anything, else nlp[1]
+        global keep, chk, info
+        keep = []
+        chk = []
+        raw = get('names.csv')
+        info = csvCollumn(raw, 1)
+        r1 = r'((A|AChem|Ag|Ar|L|C|M|E|MD|V|Grad|Sp).*)?(?P<name>'
+        r2 = r'([A-Za-z ]+,){2}( jr.)?)(?P<info>.*)$'
+        char = 'A'
+        reee = ''
+        for letterIndex in range(ord('A'),ord('Z') + 1):
+                char = chr(letterIndex)
+                reee = r1 + char + r2
+                for i in range(len(info)):
+                        nlp = collect(info[i], reee)
+                        if(len(nlp[0]) > 0):
+                                info[i] = nlp[0][0] #set equal to info w/out 2nd name
+        
+
+
