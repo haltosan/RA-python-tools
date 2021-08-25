@@ -39,7 +39,10 @@ def alphaSpaceChar(text):
     return text.isalpha() or text == ' '
 
 def upperWord(text):
-    return text[0].isupper() and text[1:].islower()
+    try:
+        return text[0].isupper() and text[1:].islower()
+    except IndexError:
+        return False
 
 def false(text):
     return False

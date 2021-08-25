@@ -3,7 +3,7 @@ import csv
 import re
 import predicates as p #file of predicates for cleaning functions
 
-pwd = r'C:\Users\haltosan\OneDrive\Desktop\nlp\cornell'
+pwd = r'C:\Users\haltosan\OneDrive\Desktop\nlp\demo'
 defaultRegex = r'(?P<name>[A-Za-z ]+, [A-Za-z ]+)' 
 
 ################################################################################
@@ -25,7 +25,7 @@ defaultRegex = r'(?P<name>[A-Za-z ]+, [A-Za-z ]+)'
 # cleanFile(texts, pred = None, cleaner = clean, cleanerArg = ['\t','\ufeff'], negatePred = False, negateClean = False)
 # cleanWords(text, pred, negate = False), cleanChars(text, pred, negate = False)
 # cleanCollumn(texts, n, cleaner = cleanChars, cleanerArg = p.nameChar)
-# charStrip(texts, chars)
+# charStrip(texts, chars, negate = False)
 #
 #COLLECT: collect(text, regex=defaultRegex)
 #
@@ -81,7 +81,6 @@ def save(text, out, csv=False):
 
 def find(item, texts):
         '''finds item in texts if they're sort of similar'''
-        first = 0
         for i in range(len(texts)):
                 txt = clean(texts[i])#[:first])
                 if(len(txt) == 0):
@@ -312,7 +311,7 @@ def cleanCollumn(texts, n, cleaner = cleanChars, cleanerArg = p.nameChar):
         return csvMergeCollumn(texts, cleanCol, n)
 
 def charStrip(texts, chars, negate = False): #negate not implemented; only for compatibility
-        '''removes chars from tails of texts'''
+        '''removes chars from tails of texts (like trailing spaces)'''
         if(type(texts) is str):
                 for i in range(len(chars)): #almost worst case has chars list in reverse on the end
                         for char in chars:
