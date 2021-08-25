@@ -19,3 +19,6 @@ This is just an example of how I would use this (in the python shell):
 ```
 
 This example shows me removing all characters that don't belong in a name and any lines that aren't long (longer than 5 chars). I look at the first 5 elements to make sure I like the output, and save it to a file.
+
+
+I have a help video [here](https://youtu.be/f5S-SsI30pw). Reach out if there are any questions.
