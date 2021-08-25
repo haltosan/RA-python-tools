@@ -22,9 +22,9 @@ defaultRegex = r'(?P<name>[A-Za-z ]+, [A-Za-z ]+)'
 # csvMergeCollumn(fullTexts, collumn, n)
 #
 #CLEAN: clean(text,rems=[' ',',','"'], negate = False)
-# cleanFile(texts, pred = None, cleaner = clean, cleanArg = ['\t','\ufeff'], negatePred = False, negateClean = False)
+# cleanFile(texts, pred = None, cleaner = clean, cleanerArg = ['\t','\ufeff'], negatePred = False, negateClean = False)
 # cleanWords(text, pred, negate = False), cleanChars(text, pred, negate = False)
-# cleanCollumn(texts, n, cleaner = cleanChars, cleanArg = p.nameChar)
+# cleanCollumn(texts, n, cleaner = cleanChars, cleanerArg = p.nameChar)
 # charStrip(texts, chars)
 #
 #COLLECT: collect(text, regex=defaultRegex)
@@ -123,7 +123,7 @@ def getSame(chk,other, rems=[' ',',','"']):
 
 def getContext(chk,other, rems=[' ',',','"']):
         '''finds where lines from a check file belong in the raw input file\
-creates context (line before, check line, line after, \n) for merge function'''
+creates context (line before, check line, line after, \n) for merge function''' #used for merge
         outs = ""
         for lc in chk:
                 for i in range(len(other)):
@@ -196,6 +196,8 @@ def merge(inName, contextName, regex=defaultRegex):
 ### CSV FUNCTIONS ###
 #####################
 
+### I know there's most likely already a library for this, but I wrote my own
+
 def csvJoin(texts):
         '''converts list to csv string'''
         outs = ""
@@ -225,19 +227,22 @@ def csvText(text):
         '''turns text into proper csv string'''
         return ('"' + text + '"' if(',' in text) else text)
 
-def csvCollumn(texts, n):
+def csvCollumn(texts, n, safe = True):
         '''get a collumn from a csv file'''
         outl = list()
         for i in texts:
                 try:
                         outl.append(clean(csvSplit(i)[n], ['"']))
                 except:
-                        outl.append([])
+                        if(safe):
+                                outl.append([])
+                        else:
+                                raise IndexError("Index " + str(n) + " out of range for texts")
         return outl
 
 def csvMergeCollumn(fullTexts, collumn, n):
         '''given a csv file, replace a collumn with the corresponding item from 'collumn' list'''
-        outl = []
+        outl = list()
         for i in range(len(fullTexts)):
                 outl.append(csvSplit(fullTexts[i])[:n] + [collumn[i]] + csvSplit(fullTexts[i])[n+1:])
         return outl
@@ -246,13 +251,18 @@ def csvMergeCollumn(fullTexts, collumn, n):
 ### CLEAN FUNCTIONS ###
 #######################
 
-def clean(text,rems=[' ',',','"'], negate = False): #negate for compatibility
+### clean functions need 3 arguments: text(s), arg, negate
+### negate needs to be named negate, but it isn't positional
+### the argument is normally a predicate, but it doesn't have to be
+### clean functions are expected to return text(s)
+
+def clean(text,rems=[' ',',','"'], negate = False): #negate not implemented
         '''remvoes rems text from text/texts'''
         if type(text) is str:
                 for r in rems:
                         text = text.replace(r, '')
         elif type(text) is list:
-                out = []
+                out = list()
                 for i in text:
                         line = i
                         for r in rems:
@@ -261,8 +271,8 @@ def clean(text,rems=[' ',',','"'], negate = False): #negate for compatibility
                 text = out
         return text
 
-def cleanFile(texts, pred = None, cleaner = clean, cleanArg = ['\t','\ufeff'], negatePred = False, negateClean = False):
-        '''pred (remove line if false), cleaner (run on each line), cleanArg (argument for cleaner), can negate pred/clean'''
+def cleanFile(texts, pred = None, cleaner = clean, cleanerArg = ['\t','\ufeff'], negatePred = False, negateClean = False):
+        '''pred (remove line if false), cleaner (run on each line), cleanerArg (argument for cleaner), can negate pred/clean'''
         outl = []
         for line in texts:
                 if(pred != None and (pred(line) if negatePred else not pred(line))): #short circut to prevent None(line); skip if pred is not true
@@ -271,7 +281,7 @@ def cleanFile(texts, pred = None, cleaner = clean, cleanArg = ['\t','\ufeff'], n
                         if(cleaner == None):
                                 outl.append(line)
                         else:
-                                outl.append(cleaner(line, cleanArg, negate = negateClean))
+                                outl.append(cleaner(line, cleanerArg, negate = negateClean))
         return outl
 
 def cleanWords(text, pred, negate = False):
@@ -295,13 +305,13 @@ def cleanChars(text, pred, negate = False):
                         outs += char
         return outs
 
-def cleanCollumn(texts, n, cleaner = cleanChars, cleanArg = p.nameChar):
+def cleanCollumn(texts, n, cleaner = cleanChars, cleanerArg = p.nameChar):
         '''run a cleaner file on a collumn of a csv file'''
         col = csvCollumn(texts, n)
-        cleanCol = cleanFile(col, cleaner = cleaner, cleanArg = cleanArg)
+        cleanCol = cleanFile(col, cleaner = cleaner, cleanerArg = cleanerArg)
         return csvMergeCollumn(texts, cleanCol, n)
 
-def charStrip(texts, chars):
+def charStrip(texts, chars, negate = False): #negate not implemented; only for compatibility
         '''removes chars from tails of texts'''
         if(type(texts) is str):
                 for i in range(len(chars)): #almost worst case has chars list in reverse on the end
@@ -333,6 +343,7 @@ def collect(text, regex=defaultRegex): #basically the same as the nlp.py project
                         if i is not None:
                                 #matches.append((i.groupdict()['first'].strip() + ' ' + i.groupdict()['last'].strip(), i.groupdict()['info']))
                                 matches.append(list(i.groupdict().values()))
+                                #matches.append([i.goupdict()['info1'], i.groupdict()['name'], i.groupdict()['info']])
                         else:
                                 non_matches.append(line)
                 return matches, non_matches
@@ -481,8 +492,6 @@ def nameCleanInfo(f, n):
                 nameInfo.append([cleanNames[i], clean(info[i], [',','"','\''])])
         save(nameInfo, '192'+str(n)+' need info clean.csv')
 
-
-
 def geoff(f, n):
         reee = "(?P<name>[A-Z][a-z]+, [A-Z][a-z]+(,? )([A-Z][a-z]+)?(jr.)?), "
         names = []
@@ -508,15 +517,16 @@ def geoff(f, n):
                 if(len(n2) < 0):
                         line = line.replace(n2, '\uffff')
                 outl.append(line)
-        
-def tim(f = get('1924.txt')):
+
+def tim(f):
+        ree = r'(?P<name>[A-Z][a-z]+(,? )[A-Z][a-z]+(,? )([A-Z][a-z]+)?(jr.)?)(?P<info1>(, )?\d*([A-Za-z\. ]*), [A-Za-z, ]+[^\.]*\. [A-Z\. ]*)(?P<name2>[A-Z][a-z]+(,? )[A-Z][a-z]+(,? )([A-Z][a-z]+)?(jr.)?)(?P<info2>(, )?.*)'
         reee = r"(?P<name>[A-Z][a-z]+(,? )[A-Z][a-z]+(,? )([A-Z][a-z]+)?(jr.)?)(, )?\d*([A-Za-z\. ]*), [A-Za-z, ]+[^\.]*\. [A-Z\. ]*(?P<name2>[A-Z][a-z]+(,? )[A-Z][a-z]+(,? )([A-Z][a-z]+)?(jr.)?)(, )?.*"
         names = []
         p.SHORT_LEN = 21
-        f = cleanFile(f, p.long, cleanArg = ['‘','\ufeff','\t','*','"', '|', '-', '!', '“', '_','’','—','\'',';','CATALOGUE OF STUDENTS','CORNELL UNIVERSITY REGISTER','”','/','¢','»'])
-        f = cleanFile(f, cleaner = cleanChars, cleanArg = p.addressChar)
-        f = cleanFile(f, pp)
-        nlp = collect(f, reee)
+        f = cleanFile(f, p.long, cleanerArg = ['‘','\ufeff','\t','*','"', '|', '-', '!', '“', '_','’','—','\'',';','CATALOGUE OF STUDENTS','CORNELL UNIVERSITY REGISTER','”','/','¢','»'])
+        f = cleanFile(f, cleaner = cleanChars, cleanerArg = p.addressChar)
+        #f = cleanFile(f, pp)
+        nlp = collect(f, ree)
         return nlp
 
 def george():
@@ -569,10 +579,9 @@ def sandra():
 
 keep = []
 chk = []
-
 def monica():
         global keep, chk
-        r1 = r'((A|AChem|Ag|Ar|L|C|M|E|MD|V|Grad|Sp).*)?(?P<name>'
+        r1 = r'((A|AChem|Ag|Ar|L|C|M|E|Eng|MD|V|Grad|Sp).*)?(?P<name>'
         r2 = r'([A-Za-z ]+,){2}( jr.)?)(?P<info>.*)$'
         char = 'A'
         chk = []
@@ -597,7 +606,7 @@ def rita():
         chk = []
         raw = get('names.csv')
         info = csvCollumn(raw, 1)
-        r1 = r'((A|AChem|Ag|Ar|L|C|M|E|MD|V|Grad|Sp).*)?(?P<name>'
+        r1 = r'((A|AChem|Ag|Ar|L|C|M|E|Eng|MD|V|Grad|Sp).*)?(?P<name>'
         r2 = r'([A-Za-z ]+,){2}( jr.)?)(?P<info>.*)$'
         char = 'A'
         reee = ''
@@ -609,5 +618,138 @@ def rita():
                         if(len(nlp[0]) > 0):
                                 info[i] = nlp[0][0] #set equal to info w/out 2nd name
         
+def megan():
+        f = get('info.txt', '\n\n')
+        info = []
+        for i in f:
+                info.append(i.split('\n'))
+        outl = []
+        i = 0
+        r1 = r'(?P<info1>((A|AChem|Ag|Ar|L|C|M|E|Eng|MD|V|Grad|Sp).*)?)(?P<name>'
+        r2 = r'([A-Za-z ]+,){2}( jr.)?)(?P<info>.*)$'
+        for letterIndex in range(ord('A'), ord('Z') +1):
+                char = chr(letterIndex)
+                reee = r1 + char + r2
+                for line in info[i]:
+                        nlp = collect(line, reee)
+                        outl.append(nlp)
+                i += 1
+        o1 = []
+        for i in outl:
+                o1.append(list(i))
+        o2 = []
+        for i in o1:
+                if(len(i[0]) == 1):
+                        o2.append([i[0][0], i[1]])
+                else:
+                        o2.append([i[0], i[1]])
+        o3 = []
+        for i in o2:
+                s = []
+                if(len(i[0]) < 1):
+                        s.append(' ')
+                else:
+                        s.append(i[0][0])
+                if(len(i[1]) < 1):
+                        s.append(' ')
+                else:
+                        s.append(i[1][0])
+                o3.append(s)
+        o4 = []
+        for i in o2:
+                o4.append([i[1], i[0]])
+        o5 = []
+        for i in o4:
+                s = [i[0][0] if(len(i[0]) > 0) else ' ']
+                if(len(i[1]) < 1):
+                        s.append(' ')
+                else:
+                        for l in i[1]:
+                                s.append(l if(len(l)>0) else ' ')
+                o5.append(s)
+        return o5
+        
+def john(fname = '1922 need info clean.csv'):
+        f = get(fname)
+        reee = r'^.*(?P<year>19\d{2}).*$'
+        ree = r'^.*(?P<year>2\d).*$'
+        info = csvCollumn(f, 1)
+        for i in range(len(info)):
+                if(len(info[i]) < 1):
+                        info[i] = ' '
+        o1 = []
+        for i in info:
+                nlp = collect(i, ree)
+                o1.append(nlp[0])
+        o2 = []
+        for i in o1:
+                if(len(i) < 1):
+                        o2.append(' ') #empty
+                else:
+                        o2.append('19'+i[0][0])
+        return o2
+
+def joan(fname = '1922 need info clean.csv'):
+        f = get(fname)
+        reee = r'^.*(1\d{3}) ?(?P<program>(A \(Chem\))|(Ag)|(Ar)|(FA)|(Grad)|(Sp)|(A)|(C)|(M)|(E)|(V))'
+        ree = r'\d(?P<program>(AChem)|(Ag)|(Ar)|(FA)|(Grad)|(Sp)|(MD)|(A)|(C)|(M)|(E)|(V))'
+        info = csvCollumn(f, 1)
+        for i in range(len(info)):
+                if(len(info[i]) < 1):
+                        info[i] = ' '
+        o1 = []
+        for i in info:
+                nlp = collect(i, ree)
+                if(len(nlp[0]) < 1):
+                        o1.append(' ')
+                else:
+                        o1.append(nlp[0][0][0])
+        o2 = []
+        programs = {'A':'Arts and Sciences', 'AChem':'Arts and Sciences, Department of Chemistry',
+                   'Ag': 'Agriculture', 'Ar': 'Architecture','L': 'Law','Eng': 'Enginerring', 'FA': 'Fine Arts',
+                   'C': 'Civil Engineering', 'M': 'Mechanical Engineering','E': 'Electrical Engineering', ' ':'',
+                   'MD': 'Medical College', 'V': 'Veterinary College','Grad': 'Graduate School','Sp': 'Special Student'}
+        for i in o1:
+                o2.append(programs[i])
+        o3 = []
+        for i in o2:
+                o3.append(csvText(i))
+        return o3
+
+def jeffery(fname = '1924 need info clean.csv'):
+        f = get(fname)
+        reee = r'\d((AChem)|(Ag)|(Ar)|(FA)|(Grad)|(Sp)|(MD)|(A)|(C)|(M)|(E)|(V))(?P<location>.*)'
+        info = csvCollumn(f, 1)
+        for i in range(len(info)):
+                if(len(info[i]) < 1):
+                        info[i] = ' '
+        o1 = []
+        for i in info:
+                nlp = collect(i, reee)
+                if(len(nlp[0]) < 1):
+                        o1.append(' ')
+                else:
+                        o1.append(nlp[0][0][0])
+        o2 = []
+        for i in o1:
+                o2.append(csvText(i))
+        return o2
+
+def fileStrip(f, cleanerArg = ',. '):
+        #assume a header
+        outl = []
+        i = 0
+        while(True):
+                try:
+                        collumn = csvCollumn(f, i) #throws out of bounds error when index is wrong
+                        i += 1
+                except IndexError:
+                        return outl
+                newCol = cleanFile(collumn, cleaner = charStrip, cleanerArg=cleanerArg)
+                outl.append(newCol)
+
+
+
+
 
 
