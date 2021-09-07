@@ -3,8 +3,8 @@ import os
 import csv
 import re
 import predicates as p  # file of predicates for cleaning functions
-
-pwd = r'C:\Users\esimmon1\Downloads\Dartmouth\Dartmouth'
+#execfile(fName)
+pwd = r'C:\Users\haltosan\OneDrive\Desktop\nlp'
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 PROGRAM = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 LOCATION = r'( |^)(?P<location>\d+ .*)'
