@@ -4,14 +4,14 @@ import csv
 import re
 import predicates as p  # file of predicates for cleaning functions
 #execfile(fName)
-pwd = r'C:\Users\esimmon1\Downloads\Columbia\Columbia'
+pwd = r'C:\Users\esimmon1\Downloads\MIT\Massachusetts Institute of Technology'
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 PROGRAM = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 LOCATION = r'( |^)(?P<location>\d+ .*)'
 FRAT = r'(?P<frat>((Alpha)|(Beta)|(Gamma)|(Delta)|(Epsilon)|(Zeta)|(Eta)|(Theta)|(Iota)|(Kappa)|(Lambda)|(Mu)|(Nu)|(' \
        r'Xi)|(Omicron)|(Pi)|(Rho)|(Sigma)|(Tau)|(Upsilon)|(Phi)|(Chi)|(Psi)|(Omega)).*) '
 LOCATION2 = r'^((M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))?(?P<location>.*)'
-NAME = r'^()(?!(With)|(in))(?P<name>.*)'
+NAME = r'^(?P<name>[A-Z][A-Za-z]+,? ([A-Z](\.|[A-Za-z]+) ?){1,3}(, Jr)?)'
 
 
 ################################################################################
@@ -937,3 +937,15 @@ def foil(dirname = '52'):
     save(o3, 'cleaner.txt')
     os.chdir('..')
 
+def sortaSimilar(text1, text2):
+    #same letters in same order, can have gaps / some bad chars
+    #similarity - % of same
+    #ordering - letters are mostly in the same order
+    pass
+
+def hobbes():
+    #Neme, Name, etc.
+    #Class, Ciags, c Vas ;, 
+    #Home Address, llome A ddress
+    #Name Class Course Home Address, Name Class Courte Home Address
+    pass
