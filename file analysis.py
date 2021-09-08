@@ -4,13 +4,14 @@ import csv
 import re
 import predicates as p  # file of predicates for cleaning functions
 #execfile(fName)
-pwd = r'C:\Users\haltosan\OneDrive\Desktop\nlp'
+pwd = r'C:\Users\esimmon1\Downloads\Columbia\Columbia'
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 PROGRAM = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 LOCATION = r'( |^)(?P<location>\d+ .*)'
 FRAT = r'(?P<frat>((Alpha)|(Beta)|(Gamma)|(Delta)|(Epsilon)|(Zeta)|(Eta)|(Theta)|(Iota)|(Kappa)|(Lambda)|(Mu)|(Nu)|(' \
        r'Xi)|(Omicron)|(Pi)|(Rho)|(Sigma)|(Tau)|(Upsilon)|(Phi)|(Chi)|(Psi)|(Omega)).*) '
 LOCATION2 = r'^((M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))?(?P<location>.*)'
+NAME = r'^()(?!(With)|(in))(?P<name>.*)'
 
 
 ################################################################################
@@ -79,8 +80,10 @@ def save(text, out, csvStyle=False):
             x.write('\n'.join(outl))
         else:  # just a normal list
             if csvStyle:
-                text = csvJoin(text)
-                x.write(text)
+                outl = list()
+                for i in text:
+                    outl.append(csvText(i))
+                x.write('\n'.join(outl))
             else:
                 x.write('\n'.join(text))  # puts \n between cells
     else:
@@ -294,7 +297,7 @@ def clean(text, rems=None, negate=False):  # negate not implemented
     return text
 
 
-def cleanFile(texts, pred=None, cleaner=clean, cleanerArg=None, negatePred=False, negateClean=False):
+def cleanFile(texts, pred=None, cleaner=None, cleanerArg=None, negatePred=False, negateClean=False):
     """pred (remove line if false), cleaner (run on each line), cleanerArg (argument for cleaner), can negate pred/clean"""
     if cleanerArg is None:
         cleanerArg = ['\t', '\ufeff']
@@ -855,7 +858,7 @@ def bestPages(dirname='52'):
     dirScan = os.scandir()
     formats = []
     numNamesFound = [0] * 5  # 5 file formats
-    regex = r'^.{0,4}(?P<name>([A-Z][a-z]+)+, ?([A-Z][a-z]*.?,? ?)+)'
+    regex = NAME
     while True:
         try:
             fname = next(dirScan).name
@@ -924,3 +927,13 @@ def infoExtract(fname, infoN=2, regex=defaultRegex, outCol=4, spaceMatches=True)
             s.append(clean(col, '"'))
         outl.append(s)
     return outl
+
+def foil(dirname = '52'):
+    os.chdir(dirname)
+    f = get('Columbia_19'+dirname+'-1.txt')
+    o1 = cleanFile(f, pred = p.hasPage, negatePred = True)
+    o2 = cleanFile(o1, pred = p.long)
+    o3 = cleanFile(o2, pred = lambda t : t[:4] == 'With' or t[:2] == 'in' or t[:4] == 'High' or 'Honors' in t, negatePred = True)
+    save(o3, 'cleaner.txt')
+    os.chdir('..')
+
