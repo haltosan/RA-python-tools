@@ -4,7 +4,7 @@ import csv
 import re
 import predicates as p  # file of predicates for cleaning functions
 #execfile(fName)
-pwd = r'C:\Users'
+pwd = r'C:\Users\haltosan\OneDrive\Desktop\nlp\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 PROGRAM = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 LOCATION = r'( |^)(?P<location>\d+ .*)'
@@ -806,7 +806,7 @@ def ghostBuster(fname='Cornell 1920s NLP Output.csv'):  # finds lines that start
         letters = []
         scores = []
         for i in range(blockSize):
-            line = clean(f[block * blockSize + i], '"')
+            line = clean(f[block * blockSize + i], '" ')
             letters.append(line[0])
             scores.append(0)
         for i in range(len(letters)):
@@ -817,9 +817,10 @@ def ghostBuster(fname='Cornell 1920s NLP Output.csv'):  # finds lines that start
         for i in range(blockSize):
             line = f[block * blockSize + i]
             if clean(line, '"')[0] != trump:
-                outl.append(line + ' , , *' + trump)
-            else:
                 outl.append(line)
+            else:
+                pass
+                #outl.append(line)
     return outl
 
 
@@ -937,15 +938,13 @@ def foil(dirname = '52'):
     save(o3, 'cleaner.txt')
     os.chdir('..')
 
-def sortaSimilar(text1, text2):
-    #same letters in same order, can have gaps / some bad chars
-    #similarity - % of same
-    #ordering - letters are mostly in the same order
-    pass
-
-def hobbes():
-    #Neme, Name, etc.
-    #Class, Ciags, c Vas ;, 
-    #Home Address, llome A ddress
-    #Name Class Course Home Address, Name Class Courte Home Address
-    pass
+def mitPass1(fname):
+    f = get(fname)
+    cleanish = cleanFile(cleanFile(f, p.long), p.hasPage, negatePred=True)
+    blackList = ['Name', 'Class', 'Course', 'Home']
+    catchThreshold = 2
+    moreCleanish = cleanFile(cleanish, lambda t: len([t for bad in blackList if bad in t]) > catchThreshold, negatePred = True)
+    nlp = collect(moreCleanish, NAME + '(?P<info>.*)')
+    save(nlp[0], 'pass 1' + fname + '.csv', True)
+    save(nlp[1], 'check ' + fname + '.txt')
+    
