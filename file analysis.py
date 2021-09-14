@@ -942,9 +942,13 @@ def mitPass1(fname):
     f = get(fname)
     cleanish = cleanFile(cleanFile(f, p.long), p.hasPage, negatePred=True)
     blackList = ['Name', 'Class', 'Course', 'Home']
-    catchThreshold = 2
+    catchThreshold = 2 #how many items from blacklist should appear in to remove
     moreCleanish = cleanFile(cleanish, lambda t: len([t for bad in blackList if bad in t]) > catchThreshold, negatePred = True)
     nlp = collect(moreCleanish, NAME + '(?P<info>.*)')
     save(nlp[0], 'pass 1' + fname + '.csv', True)
     save(nlp[1], 'check ' + fname + '.txt')
     
+def mitGetManual(fname):
+    x = ghostBuster(fname)
+    save(x, 'manual ' + fname + '.txt')
+
