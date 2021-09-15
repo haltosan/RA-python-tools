@@ -4,7 +4,7 @@ import csv
 import re
 import predicates as p  # file of predicates for cleaning functions
 #execfile(fName)
-pwd = r'C:\Users\haltosan\OneDrive\Desktop\nlp\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
+pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 PROGRAM = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 LOCATION = r'( |^)(?P<location>\d+ .*)'
@@ -797,30 +797,45 @@ def fileStrip(f, cleanerArg=',. '):
         newCol = cleanFile(column, cleaner=charStrip, cleanerArg=cleanerArg)
         outl.append(newCol)
 
+def borderBlocks(i, f):
+    blockSize = 5
+    offset = int(blockSize * .3)
+    b1 = [clean(i, ' "')[0] for i in f[i - offset - blockSize : i - offset]]
+    b2 = [clean(i, ' "')[0] for i in f[i + blockSize - offset : i + 2 * blockSize - offset]]
+    getTrump = lambda lst : max(set(lst), key=lst.count)
+    t1 = getTrump(b1)
+    t2 = getTrump(b2)
+    alpha = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
+    try:
+        trumpDiff = (alpha.index(t2) - alpha.index(t1))
+    except:
+        print(t1, t2, f[i])
+        return False  # trump not in alphabet
+    if trumpDiff <= 2 and trumpDiff >= 0:        
+        firstValue = ord(clean(f[i], ' "')[0])
+        if firstValue >= ord(t1) and firstValue <= ord(t2):
+            return True
+    print(t1, t2, f[i])
+    return False
 
 def ghostBuster(fname='Cornell 1920s NLP Output.csv'):  # finds lines that start with a strange letter (b in the middle of the e section)
     f = get(fname)
     blockSize = 20
     outl = []
     for block in range(int(len(f) / blockSize)):
-        letters = []
-        scores = []
+        letters = [clean(i, ' "')[0] for i in f[block * blockSize : block * blockSize + blockSize]]  # first letters of lines in block
+        trump = max(set(letters), key = letters.count)  # most common starting letter
         for i in range(blockSize):
-            line = clean(f[block * blockSize + i], '" ')
-            letters.append(line[0])
-            scores.append(0)
-        for i in range(len(letters)):
-            for l in letters:
-                if l == letters[i]:
-                    scores[i] += 1
-        trump = letters[scores.index(max(scores))]  # most common letter in this section
-        for i in range(blockSize):
-            line = f[block * blockSize + i]
-            if clean(line, '"')[0] != trump:
-                outl.append(line)
-            else:
-                pass
-                #outl.append(line)
+            lnIndex = block * blockSize + i
+            line = f[lnIndex]
+            if clean(line, ' "')[0] != trump:
+                if (i <= int(blockSize*.3) or i>= blockSize - int(blockSize*.3)):
+                    if borderBlocks(lnIndex, f):
+                        pass
+                    else:
+                        outl.append(line)
+                else:
+                    outl.append(line)  # anomly
     return outl
 
 
@@ -938,17 +953,15 @@ def foil(dirname = '52'):
     save(o3, 'cleaner.txt')
     os.chdir('..')
 
-def mitPass1(fname):
-    f = get(fname)
-    cleanish = cleanFile(cleanFile(f, p.long), p.hasPage, negatePred=True)
-    blackList = ['Name', 'Class', 'Course', 'Home']
-    catchThreshold = 2 #how many items from blacklist should appear in to remove
-    moreCleanish = cleanFile(cleanish, lambda t: len([t for bad in blackList if bad in t]) > catchThreshold, negatePred = True)
-    nlp = collect(moreCleanish, NAME + '(?P<info>.*)')
-    save(nlp[0], 'pass 1' + fname + '.csv', True)
-    save(nlp[1], 'check ' + fname + '.txt')
-    
-def mitGetManual(fname):
-    x = ghostBuster(fname)
-    save(x, 'manual ' + fname + '.txt')
+def sortaSimilar(text1, text2):
+    #same letters in same order, can have gaps / some bad chars
+    #similarity - % of same
+    #ordering - letters are mostly in the same order
+    pass
 
+def hobbes():
+    #Neme, Name, etc.
+    #Class, Ciags, c Vas ;, 
+    #Home Address, llome A ddress
+    #Name Class Course Home Address, Name Class Courte Home Address
+    pass
