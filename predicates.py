@@ -120,3 +120,17 @@ def printableChar(text):
 
 def space(text):
     return text.isspace()
+
+def repeatedLetters(text):
+    if(len(text) <= 2):
+        return False
+    lastLetter = text[0]
+    occurances = 0
+    for i in text[1:]:
+        if i == lastLetter:
+            occurances += 1
+        if occurances >= len(text) / 2:
+            return True
+        lastLetter = i
+    return False
+
