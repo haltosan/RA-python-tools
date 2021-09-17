@@ -4,7 +4,7 @@ import csv
 import re
 import predicates as p  # file of predicates for cleaning functions
 #execfile(fName)
-pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology'
+pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 PROGRAM = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 LOCATION = r'( |^)(?P<location>\d+ .*)'
@@ -13,6 +13,9 @@ FRAT = r'(?P<frat>((Alpha)|(Beta)|(Gamma)|(Delta)|(Epsilon)|(Zeta)|(Eta)|(Theta)
 LOCATION2 = r'^((M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))?(?P<location>.*)'
 NAME = r'^(?P<name>[A-Z][A-Za-z]+,? ([A-Z](\.|[A-Za-z]+) ?){1,3}(, Jr)?)'
 
+YEAR_RANGE = r'[23]'  # range of acceptable values in the 10's digit of the year
+YEAR_WITH_ERRORS = r'(?P<year>(1(9'+YEAR_RANGE+r'.|\d\d\d|9.\d|.'+YEAR_RANGE+'\d))|(d(9\d\d|\d'+YEAR_RANGE+'\d))|(.9'+YEAR_RANGE+'\d))(?P<other>.*$)'
+#this allows for 2 errors: the format should be 1 9 \YEAR_RANGE\ digit; any digit (other than expected) in the first 3 chars counts as 1 error, a wildcard character anywhere counts as 2 errors
 
 ################################################################################
 # chk - check file, texts - some list of text
@@ -237,7 +240,7 @@ def csvSplit(text):
         if char == ',' and not inString:
             texts.append(curString)
             curString = ""
-        else:
+        elif char != '"':  # TODO: figure out how to remove only the quotes that escape stuff, not literal quotes
             curString += str(char)
     texts.append(curString)
     return texts
