@@ -7,19 +7,9 @@ Each file has it's own documentation in a block comment, but feel free to yell a
 
 
 ### Usage
-This is just an example of how I would use this (in the python shell):
 
-```
-= RESTART: file analysis.py
->>> raw = get('1924.txt')
->>> cleanRaw = cleanFile(raw, pred = p.long, cleaner = cleanChars, cleanArg = p.nameChar, negatePred = False, negateClean = False)
->>> cleanRaw[:5]
-['Abaya, Gonzalo, jr, M, Pagsanjan, Laguna, P I Harry Benjamin, BS, Grad, Olean', 'Abbey, Charles Newell,  Cherry Creek Ager Beatrice, A, Tarrytown', 'Abel, Armand Henry, A, Cleveland, Ohio Allen, Dell Keller, Eng, Dallas, Texas', 'Abel, Charles Allen, g, Buffalo Allen, Floyd Benjamin, M, Elmira', 'Abel, Herri Ernest, MD NYC, Elizabeth, N J Allen, Laura Catherine, Ag, C']
->>> save(cleanRaw, 'example.txt')
-```
-
-This example shows me removing all characters that don't belong in a name and any lines that aren't long (longer than 5 chars). I look at the first 5 elements to make sure I like the output, and save it to a file.
+Download the latest release and extract the zip. Inside are a few python files. The main file is file_analysis.py (it has all the functions defined). The other files are either exteneded features (experimental) or supporting (predicates). My prefered usage is opening file_analysis.py in IDLE and running it. There isn't any output aside from working directory, but it has all the functions loaded and ready to use from the shell.
 
 Visit the wiki for syntax and usage.
 
-I have a help video [here](https://youtu.be/f5S-SsI30pw). Reach out if there are any questions.
+I also have a help video [here](https://youtu.be/f5S-SsI30pw), but the wiki is far more extensive. Reach out if there are any questions.
