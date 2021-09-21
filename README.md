@@ -25,6 +25,6 @@ rawFile = f.get("example.txt")
 print(cleanFile(rawFile, p.long))
 ```
 
-Visit the wiki for syntax and usage.
+Visit the [wiki](https://github.com/haltosan/RA-python-tools/wiki) for syntax and usage.
 
 I also have a help video [here](https://youtu.be/f5S-SsI30pw), but the wiki is far more extensive. Reach out if there are any questions.
