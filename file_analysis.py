@@ -14,7 +14,7 @@ LOCATION2 = r'^((M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]
 NAME = r'^(?P<name>[A-Z][A-Za-z]+,? ([A-Z](\.|[A-Za-z]+) ?){1,3}(, Jr)?)'
 
 YEAR_RANGE = r'[23]'  # range of acceptable values in the 10's digit of the year
-YEAR_WITH_ERRORS = r'(?P<year>(1(9'+YEAR_RANGE+r'.|\d\d\d|9.\d|.'+YEAR_RANGE+'\d))|(d(9\d\d|\d'+YEAR_RANGE+'\d))|(.9'+YEAR_RANGE+'\d))(?P<other>.*$)'
+YEAR_WITH_ERRORS = r'(?P<year>(1(9'+YEAR_RANGE+r'.|\d\d\d|9.\d|.'+YEAR_RANGE+'\d))|(\d(9\d\d|\d'+YEAR_RANGE+'\d))|(.9'+YEAR_RANGE+'\d))(?P<other>.*$)'
 #this allows for 2 errors: the format should be 1 9 \YEAR_RANGE\ digit; any digit (other than expected) in the first 3 chars counts as 1 error, a wildcard character anywhere counts as 2 errors
 
 ################################################################################
@@ -53,7 +53,10 @@ YEAR_WITH_ERRORS = r'(?P<year>(1(9'+YEAR_RANGE+r'.|\d\d\d|9.\d|.'+YEAR_RANGE+'\d
 
 def init():
     """Gets shell in correct dir and runs any other init stuff you need"""
-    os.chdir(pwd)
+    try:
+        os.chdir(pwd)
+    except FileNotFoundError:
+        print('Unable to change directory, not found')
 
 
 def get(fileName, splt='\n'):
@@ -65,7 +68,7 @@ def get(fileName, splt='\n'):
 
 
 def save(text, out, csvStyle=False):
-    """writes text to out (file name), can do it in a csv format"""
+    """writes text to out (file name), can also do it in a csv format\naccepts string, lists, and lists of lists"""
     x = open(out, 'w', encoding='utf-8')
     if type(text) is str:
         if ',' in text:
@@ -252,7 +255,7 @@ def csvText(text):
 
 
 def csvColumn(texts, n, safe=True):
-    """get a column from a csv file"""
+    """return a column from a csv file"""
     outl = list()
     for i in texts:
         try:
@@ -266,7 +269,7 @@ def csvColumn(texts, n, safe=True):
 
 
 def csvMergeColumn(fullTexts, column, n):
-    """given a csv file, replace a column with the corresponding item from 'column' list"""
+    """given a csv file, replace a column with the corresponding item from 'column' list in the index n"""
     outl = list()
     for i in range(len(fullTexts)):
         outl.append(csvSplit(fullTexts[i])[:n] + [column[i]] + csvSplit(fullTexts[i])[n + 1:])
@@ -282,13 +285,20 @@ def csvMergeColumn(fullTexts, column, n):
 ### the argument is normally a predicate, but it doesn't have to be
 ### clean functions are expected to return text(s)
 
-def clean(text, rems=None, negate=False):  # negate not implemented
+def clean(text, rems=None, negate=False):
     """removes rems text from text/texts"""
     if rems is None:
         rems = [' ', ',', '"']
     if type(text) is str:
-        for r in rems:
-            text = text.replace(r, '')
+        if not negate:
+            for r in rems:
+                text = text.replace(r, '')
+        else:
+            newText = ''
+            for i in text:
+                if i in rems:
+                    newText += i
+            text = newText
     elif type(text) is list:
         out = list()
         for i in text:
@@ -306,13 +316,13 @@ def cleanFile(texts, pred=None, cleaner=None, cleanerArg=None, negatePred=False,
         cleanerArg = ['\t', '\ufeff']
     outl = []
     for line in texts:
-        if (pred is not None) and (pred(line) if negatePred else not pred(line)):  # short circut to prevent None(line); skip if pred is not true
+        if (pred is not None) and (pred(line) if negatePred else not pred(line)):  # prevents None(line); skip if pred is not true
             pass
         else:
             if cleaner is None:
-                outl.append(line)
+                outl.append(line)  # don't clean
             else:
-                outl.append(cleaner(line, cleanerArg, negate=negateClean))
+                outl.append(cleaner(line, cleanerArg, negate=negateClean))  # this is why cleaner type functions need text, arg, and negate
     return outl
 
 
@@ -325,7 +335,7 @@ def cleanWords(text, pred, negate=False):
             pass
         else:
             outl.append(word)
-    return ' '.join(outl)
+    return ' '.join(outl)  # connect the words with spaces
 
 
 def cleanChars(text, pred, negate=False):
@@ -339,7 +349,7 @@ def cleanChars(text, pred, negate=False):
     return outs
 
 
-def cleanColumn(texts, n, cleaner=cleanChars, cleanerArg=p.nameChar):
+def cleanColumn(texts, n, cleaner=cleanChars, cleanerArg=p.nameChar):  # DEPENDANT ON csvColumn, cleanFile, csvMergeColumn
     """run a cleaner file on a column of a csv file"""
     col = csvColumn(texts, n)
     cleanCol = cleanFile(col, cleaner=cleaner, cleanerArg=cleanerArg)
@@ -360,19 +370,19 @@ def charStrip(texts, chars, negate=False):  # negate not implemented; only for c
                     outl[line] = outl[line].strip(char)
         texts = outl
     else:
-        raise Exception("Unknown type for texts arg")
+        raise TypeError("Unknown type for texts arg")
     return texts
 
 
-def borderBlocks(i, f):
+def borderBlocks(i, f):  # helper function for ghost buster; finds the border of an alphabetical section (aaaabbb) using blocks
     blockSize = 5
     offset = int(blockSize * .3)
-    b1 = [clean(i, ' "')[0] for i in f[i - offset - blockSize : i - offset]]
-    b2 = [clean(i, ' "')[0] for i in f[i + blockSize - offset : i + 2 * blockSize - offset]]
-    getTrump = lambda lst : max(set(lst), key=lst.count)
+    b1 = [clean(i, ' "')[0] for i in f[i - offset - blockSize : i - offset]]  # looks back to find origin letter (only takes first letter)
+    b2 = [clean(i, ' "')[0] for i in f[i + blockSize - offset : i + 2 * blockSize - offset]]  # looks forward to find destination letter
+    getTrump = lambda lst : max(set(lst), key=lst.count)  # function for finding most common letter in a block
     t1 = getTrump(b1)
     t2 = getTrump(b2)
-    alpha = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
+    alpha = [chr(i) for i in range(ord('A'), ord('Z') + 1)]  # alphabet
     try:
         trumpDiff = (alpha.index(t2) - alpha.index(t1))
     except ValueError:
@@ -380,13 +390,14 @@ def borderBlocks(i, f):
         return False  # trump not in alphabet
     if trumpDiff <= 2 and trumpDiff >= 0:        
         firstValue = ord(clean(f[i], ' "')[0])
-        if firstValue >= ord(t1) and firstValue <= ord(t2):
+        if firstValue >= ord(t1) and firstValue <= ord(t2):  # if the starting letter is between the 2 letters
             return True
     print(t1, t2, f[i])
     return False
 
 
-def ghostBuster(fname):  # finds lines that start with a strange letter (b in the middle of the e section)
+def ghostBuster(fname):  # finds lines that start with a strange letter (b in the middle of the e section); DEPENDANT ON borderBlocks
+    """finds lines that start with strange letters (Benson in the middle of the F section) and prints them out"""
     f = get(fname)
     blockSize = 20
     outl = []
@@ -396,8 +407,8 @@ def ghostBuster(fname):  # finds lines that start with a strange letter (b in th
         for i in range(blockSize):
             lnIndex = block * blockSize + i
             line = f[lnIndex]
-            if clean(line, ' "')[0] != trump:
-                if (i <= int(blockSize*.3) or i>= blockSize - int(blockSize*.3)):
+            if clean(line, ' "')[0] != trump:  # if the line doesn't start with the most common letter it is most likely an anomaly
+                if (i <= int(blockSize*.3) or i>= blockSize - int(blockSize*.3)):  # if it's in the first or last 30% it could be on the border of 2 sections (aaaabbb) and is therefore not an anomaly
                     if borderBlocks(lnIndex, f):
                         pass
                     else:
@@ -434,7 +445,7 @@ def collect(text, regex=defaultRegex, spaceMatches=False):  # basically the same
     elif type(text) is str:
         for line in text.split('\n'):
             i = people_re.search(line)
-            if i is not None:
+            if i is not None:   #these commented blocks are alternate ways of returning the values we get from the regex; the 3rd line has no particular ordering, while the other 2 allow for specific ordering
                 # matches.append((i.groupdict()['first'].strip() + ' ' + i.groupdict()['last'].strip(), i.groupdict()['info']))
                 # matches.append([i.groupdict()['name'],i.groupdict()['addressPt1'],i.groupdict()['addressPt2']])
                 matches.append(list(i.groupdict().values()))
@@ -464,6 +475,7 @@ def headerGrab(texts, headerPred, quite=True):
             if not quite:
                 print(file[i])
                 print(":next:", file[i + 1])
+                # ~here are what the options mean during interactive mode~
                 # y - info+= line
                 # n - not header, skip
                 # r - refresh/clear info
@@ -485,7 +497,7 @@ def headerGrab(texts, headerPred, quite=True):
     return outl
 
 
-def infoGrab(fname, outName):
+def infoGrab(fname, outName):  # DEPENDANT ON csvColumn, csvMergeColumn, save
     """pulls info off of names (John Smith, English) and moves it over a column"""
     f = get(fname)
     if len(f[-1]) < 1:
@@ -507,7 +519,7 @@ def infoGrab(fname, outName):
     save(o3, outName)
 
 
-def slapThatInfoOn(texts):
+def slapThatInfoOn(texts):  # DEPENDANT ON predicates.regex
     """attaches info on lines after names (John Smith \\n Science \\n 1922)\
 \nneed to set p.REGULAR_EXPRESSION to identify names"""
     outl = []

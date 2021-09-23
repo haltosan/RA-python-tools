@@ -1,8 +1,16 @@
 from file_analysis import *
 
+
+
+pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
+os.chdir(pwd)
+
+
+
 ###########################################
-### MOST LIKELY NOT REUSABLE
+### STILL IN DEVELOPMENT
 ###########################################
+
 
 def nameCleanInfo(f, n):
     o1 = slapThatInfoOn(f)
@@ -35,6 +43,131 @@ def nameCleanInfo(f, n):
     for i in range(len(info)):
         nameInfo.append([cleanNames[i], clean(info[i], [',', '"', '\''])])
     save(nameInfo, '192' + str(n) + ' need info clean.csv')
+
+
+def fileStrip(f, cleanerArg=',. '):
+    # assume a header
+    outl = []
+    i = 0
+    while True:
+        try:
+            column = csvColumn(f, i)  # throws out of bounds error when index is wrong
+            i += 1
+        except IndexError:
+            return outl
+        newCol = cleanFile(column, cleaner=charStrip, cleanerArg=cleanerArg)
+        outl.append(newCol)
+
+
+def settingsChanger():
+    configPath = r'config.txt'
+    config = get(configPath)
+    quality = int(config[5])
+    maxNames = -1
+    last = -1
+    current = 0
+    change = 75
+    up = True
+    regex = r'^(?P<name>A[a-z]+, ([A-Z][a-z]+(, )?)+)'
+    while input('[]') != 'end':
+        f = get('Cornell_1921-12.txt')
+        nlp = collect(f, regex)
+        current = len(nlp[0])
+        if current < last - 3:
+            up = not up
+            change /= 2
+        if current > maxNames:
+            print('max:', current, quality)
+            maxNames = current
+        print(current, quality)
+        last = current
+        quality += (1 if up else -1) * change
+        quality = int(quality)
+        config[5] = str(quality)
+        save(config, configPath)
+        save(nlp[0], 'tmp.txt')
+
+
+def bestPages(dirname='52'):
+    outll = []
+    os.chdir(dirname)
+    dirScan = os.scandir()
+    formats = []
+    numNamesFound = [0] * 5  # 5 file formats
+    regex = NAME
+    while True:
+        try:
+            fname = next(dirScan).name
+        except StopIteration:
+            break
+        f = get(fname, 'PAGE')
+        formats.append(f)
+    del dirScan, dirname, f, fname
+    nameSum = 0
+    chosens = []
+    for pageI in range(2):
+        for fIndex in range(len(formats)):
+            f = formats[fIndex]
+            page = f[pageI].split('\n')
+            nlp = collect(page, regex)
+            numNamesFound[fIndex] = len(nlp[0])
+        chosenOne = numNamesFound.index(max(numNamesFound))
+        chosens.append(chosenOne)
+        nameSum += numNamesFound[chosenOne]
+        outll.append(collect(formats[chosenOne][pageI], regex))
+
+    print(nameSum, "total names")
+    settings = [1, 12, 3, 4, 6]
+    print('Best setting:', settings[max(set(chosens), key=chosens.count)])
+    os.chdir('..')
+    return outll
+
+
+def cleanCollect(fname='4.txt'):
+    f = get(fname)
+    o1 = cleanFile(f, p.space, negatePred=True)
+    o2 = cleanFile(o1, p.hasPage, negatePred=True)
+    p.SHORT_LEN = 10
+    o3 = cleanFile(o2, p.long)
+    save(o3, fname + ' clean.txt')
+    f = get(fname + ' clean.txt')
+    nlp = collect(f)
+    save(nlp[0], 'nlp.csv', csvStyle=True)
+    save(nlp[1], 'check.txt')
+
+
+def infoExtract(fname, infoN=2, regex=defaultRegex, outCol=4, spaceMatches=True):
+    f = get(fname)
+    for i in range(len(f)):
+        while len(csvSplit(f[i])) < outCol:
+            f[i] += ', '  # make sure we have the right amount of cols
+    info = csvColumn(f, infoN)
+    for i in range(len(info)):
+        if len(info[i]) < 1:
+            info[i] = ' '  # collect no like blank strings
+    nlp = collect(info, regex=regex, spaceMatches=spaceMatches)
+    infol = []
+    for i in nlp[0]:
+        if type(i) is list:
+            infol.append(i[0])  # remove nested lists
+        else:
+            infol.append(i)
+    o1 = csvMergeColumn(f, infol, outCol)
+    for i in range(len(o1)):
+        if len(o1[i]) < outCol:
+            o1[i].append(' ')  # i think this makes the blank cells into spaces
+    outl = []
+    for i in o1:
+        s = []
+        for col in i:
+            s.append(clean(col, '"'))
+        outl.append(s)
+    return outl
+
+
+###########################################
+### MOST LIKELY NOT REUSABLE
+###########################################
 
 
 def geoff(f, n):
@@ -296,126 +429,6 @@ def jeffery(fname='1924 need info clean.csv'):
     return o2
 
 
-def fileStrip(f, cleanerArg=',. '):
-    # assume a header
-    outl = []
-    i = 0
-    while True:
-        try:
-            column = csvColumn(f, i)  # throws out of bounds error when index is wrong
-            i += 1
-        except IndexError:
-            return outl
-        newCol = cleanFile(column, cleaner=charStrip, cleanerArg=cleanerArg)
-        outl.append(newCol)
-
-
-
-def settingsChanger():
-    configPath = r'config.txt'
-    config = get(configPath)
-    quality = int(config[5])
-    maxNames = -1
-    last = -1
-    current = 0
-    change = 75
-    up = True
-    regex = r'^(?P<name>A[a-z]+, ([A-Z][a-z]+(, )?)+)'
-    while input('[]') != 'end':
-        f = get('Cornell_1921-12.txt')
-        nlp = collect(f, regex)
-        current = len(nlp[0])
-        if current < last - 3:
-            up = not up
-            change /= 2
-        if current > maxNames:
-            print('max:', current, quality)
-            maxNames = current
-        print(current, quality)
-        last = current
-        quality += (1 if up else -1) * change
-        quality = int(quality)
-        config[5] = str(quality)
-        save(config, configPath)
-        save(nlp[0], 'tmp.txt')
-
-
-def bestPages(dirname='52'):
-    outll = []
-    os.chdir(dirname)
-    dirScan = os.scandir()
-    formats = []
-    numNamesFound = [0] * 5  # 5 file formats
-    regex = NAME
-    while True:
-        try:
-            fname = next(dirScan).name
-        except StopIteration:
-            break
-        f = get(fname, 'PAGE')
-        formats.append(f)
-    del dirScan, dirname, f, fname
-    nameSum = 0
-    chosens = []
-    for pageI in range(2):
-        for fIndex in range(len(formats)):
-            f = formats[fIndex]
-            page = f[pageI].split('\n')
-            nlp = collect(page, regex)
-            numNamesFound[fIndex] = len(nlp[0])
-        chosenOne = numNamesFound.index(max(numNamesFound))
-        chosens.append(chosenOne)
-        nameSum += numNamesFound[chosenOne]
-        outll.append(collect(formats[chosenOne][pageI], regex))
-
-    print(nameSum, "total names")
-    settings = [1, 12, 3, 4, 6]
-    print('Best setting:', settings[max(set(chosens), key=chosens.count)])
-    os.chdir('..')
-    return outll
-
-
-def cleanCollect(fname='4.txt'):
-    f = get(fname)
-    o1 = cleanFile(f, p.space, negatePred=True)
-    o2 = cleanFile(o1, p.hasPage, negatePred=True)
-    p.SHORT_LEN = 10
-    o3 = cleanFile(o2, p.long)
-    save(o3, fname + ' clean.txt')
-    f = get(fname + ' clean.txt')
-    nlp = collect(f)
-    save(nlp[0], 'nlp.csv', csvStyle=True)
-    save(nlp[1], 'check.txt')
-
-
-def infoExtract(fname, infoN=2, regex=defaultRegex, outCol=4, spaceMatches=True):
-    f = get(fname)
-    for i in range(len(f)):
-        while len(csvSplit(f[i])) < outCol:
-            f[i] += ', '  # make sure we have the right amount of cols
-    info = csvColumn(f, infoN)
-    for i in range(len(info)):
-        if len(info[i]) < 1:
-            info[i] = ' '  # collect no like blank strings
-    nlp = collect(info, regex=regex, spaceMatches=spaceMatches)
-    infol = []
-    for i in nlp[0]:
-        if type(i) is list:
-            infol.append(i[0])  # remove nested lists
-        else:
-            infol.append(i)
-    o1 = csvMergeColumn(f, infol, outCol)
-    for i in range(len(o1)):
-        if len(o1[i]) < outCol:
-            o1[i].append(' ')  # i think this makes the blank cells into spaces
-    outl = []
-    for i in o1:
-        s = []
-        for col in i:
-            s.append(clean(col, '"'))
-        outl.append(s)
-    return outl
-
 def foil(dirname = '52'):
     os.chdir(dirname)
     f = get('Columbia_19'+dirname+'-1.txt')
@@ -424,6 +437,7 @@ def foil(dirname = '52'):
     o3 = cleanFile(o2, pred = lambda t : t[:4] == 'With' or t[:2] == 'in' or t[:4] == 'High' or 'Honors' in t, negatePred = True)
     save(o3, 'cleaner.txt')
     os.chdir('..')
+
 
 def mitPass1(fname):
     f = get(fname)
@@ -434,8 +448,18 @@ def mitPass1(fname):
     nlp = collect(moreCleanish, NAME + '(?P<info>.*)')
     save(nlp[0], 'pass 1' + fname + '.csv', True)
     save(nlp[1], 'check ' + fname + '.txt')
+
     
 def mitGetManual(fname):
     x = ghostBuster(fname)
     save(x, 'manual ' + fname + '.txt')
 
+
+def smallInfo(fname):
+    smallThreshold = 10
+    f = get(fname)
+    info = csvColumn(f, 1)
+    col3 = csvColumn(f, 2)
+    for i in range(len(info)):
+        if len(info[i]) < smallThreshold and len(col3[i]) < 1:
+            print(i, f[i])
