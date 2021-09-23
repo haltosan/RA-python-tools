@@ -6,12 +6,6 @@ import predicates as p  # file of predicates for cleaning functions
 #execfile(fName)
 pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
-PROGRAM = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
-LOCATION = r'( |^)(?P<location>\d+ .*)'
-FRAT = r'(?P<frat>((Alpha)|(Beta)|(Gamma)|(Delta)|(Epsilon)|(Zeta)|(Eta)|(Theta)|(Iota)|(Kappa)|(Lambda)|(Mu)|(Nu)|(' \
-       r'Xi)|(Omicron)|(Pi)|(Rho)|(Sigma)|(Tau)|(Upsilon)|(Phi)|(Chi)|(Psi)|(Omega)).*) '
-LOCATION2 = r'^((M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))?(?P<location>.*)'
-NAME = r'^(?P<name>[A-Z][A-Za-z]+,? ([A-Z](\.|[A-Za-z]+) ?){1,3}(, Jr)?)'
 
 YEAR_RANGE = r'[23]'  # range of acceptable values in the 10's digit of the year
 YEAR_WITH_ERRORS = r'(?P<year>(1(9'+YEAR_RANGE+r'.|\d\d\d|9.\d|.'+YEAR_RANGE+'\d))|(\d(9\d\d|\d'+YEAR_RANGE+'\d))|(.9'+YEAR_RANGE+'\d))(?P<other>.*$)'

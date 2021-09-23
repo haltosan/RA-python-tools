@@ -5,6 +5,11 @@ from file_analysis import *
 pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
 os.chdir(pwd)
 
+YEAR = r'(?P<year>(1(9(2|3).|\d\d\d|9.\d|.(2|3)\d))|(d(9\d\d|\d(2|3)\d))|(.9(2|3)\d)|(Sp\.)|(Grad\.))(?P<other>.*$)'
+NUMERAL = r'(?P<numeral>^.{1,2}[XVIxvil1]*)(?P<other>.*)'
+LOCATION = r'^.* (?P<last>.*,.*)$'
+
+
 
 
 ###########################################
@@ -463,3 +468,41 @@ def smallInfo(fname):
     for i in range(len(info)):
         if len(info[i]) < smallThreshold and len(col3[i]) < 1:
             print(i, f[i])
+
+def mitInfo(fname, yree, nree, lree):  # it works!!
+    f = get(fname)
+    info = csvColumn(f, 1)
+    col3 = csvColumn(f, 2)
+    year = []
+    numeral = []
+    location = []
+    for i in range(len(f)):
+        if len(col3[i]) > 0 or len(info[i]) < 1:
+            pass
+        else:
+            nlp = collect(info[i], yree)
+            if len(nlp[1]) > 0:
+                year.append('')
+                numeral.append('')
+                location.append('')
+            else:
+                try:
+                    year.append(nlp[0][0][0])
+                except:
+                    print('year',nlp)
+                try:
+                    nlp = collect(nlp[0][0][1], nree)
+                except:
+                    print(nlp)
+                if len(nlp[1]) > 0:
+                    numeral.append('')
+                    location.append('')
+                else:
+                    numeral.append(nlp[0][0][0])
+                    nlp = collect(nlp[0][0][1], lree)
+                    if len(nlp[1]) > 0:
+                        location.append('')
+                    else:
+                        location.append(nlp[0][0])
+    return [year, numeral, location]
+
