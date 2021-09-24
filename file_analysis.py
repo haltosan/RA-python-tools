@@ -65,8 +65,8 @@ def save(text, out, csvStyle=False):
     """writes text to out (file name), can also do it in a csv format\naccepts string, lists, and lists of lists"""
     x = open(out, 'w', encoding='utf-8')
     if type(text) is str:
-        if ',' in text:
-            text = '"' + text + '"'
+        if csvStyle:
+            text = csvText(text)
         x.write(text)
     elif type(text) is list:
         if type(text[0]) is list:  # nested lists
@@ -93,7 +93,7 @@ def save(text, out, csvStyle=False):
 
 
 def find(item, texts):
-    """finds item in texts if they're sort of similar"""
+    """finds item in texts if they're sort of similar; retuns None if not found"""
     for i in range(len(texts)):
         txt = clean(texts[i])  # [:first])
         if len(txt) == 0:
@@ -166,7 +166,7 @@ def merge(inName, contextName, regex=defaultRegex):
             continue
         if len(block[0]) == 0:
             del block[0]
-        nlp = collect(block[1], regex=regex)  # 1=middle; others are used to search up the line
+        nlp = collect(block[1], regex=regex)  # cell 1 is the middle/missing data; others are used to search up the line (hence the name context)
         if len(nlp[0]) == 0:
             check.append(nlp[1])
             continue
@@ -220,10 +220,8 @@ def csvJoin(texts):
     """converts list to csv string"""
     outs = ""
     for i in texts:
-        if ',' in i:
-            i = '"' + str(i) + '"'
-        outs += str(i) + ','
-    return outs.strip(',')
+        outs += str(csvText(i)) + ','
+    return outs.strip(',')  # removes the last comma so i don't have to fence-post it
 
 
 def csvSplit(text):

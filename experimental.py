@@ -6,7 +6,8 @@ pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massac
 os.chdir(pwd)
 
 YEAR = r'(?P<year>(1(9(2|3).|\d\d\d|9.\d|.(2|3)\d))|(d(9\d\d|\d(2|3)\d))|(.9(2|3)\d)|(Sp\.)|(Grad\.))(?P<other>.*$)'
-NUMERAL = r'(?P<numeral>^.{1,2}[XVIxvil1]*)(?P<other>.*)'
+NUMERAL = r'(?P<numeral>[XVIxvil1]+)(?P<other>.*)'
+NUMERAL_OLD = r'(?P<numeral>^.{1,2}[XVIxvil1]*)(?P<other>.*)'
 LOCATION = r'^.* (?P<last>.*,.*)$'
 
 
@@ -469,7 +470,7 @@ def smallInfo(fname):
         if len(info[i]) < smallThreshold and len(col3[i]) < 1:
             print(i, f[i])
 
-def mitInfo(fname, yree, nree, lree):  # it works!!
+def mitInfo(fname, yree = YEAR, nree = NUMERAL, lree = LOCATION):  # it works!!
     f = get(fname)
     info = csvColumn(f, 1)
     col3 = csvColumn(f, 2)
@@ -477,8 +478,46 @@ def mitInfo(fname, yree, nree, lree):  # it works!!
     numeral = []
     location = []
     for i in range(len(f)):
-        if len(col3[i]) > 0 or len(info[i]) < 1:
-            pass
+        if len(info[i]) < 1:
+            year.append('')
+            numeral.append('')
+            location.append('')
+        elif len(col3[i]) > 0:
+            year.append(csvSplit(f[i])[2])
+            numeral.append(csvSplit(f[i])[3])
+            location.append(csvSplit(f[i])[4])
+        else:
+            line = info[i]
+            nlp = collect(line, yree)
+            if len(nlp[1]) > 0:  # no match
+                year.append('')
+            else:
+                year.append(nlp[0][0][0])  # matches[first match] [first capture group (year)]
+                line = nlp[0][0][1]  # matches[first match] [second group (leftovers)]
+            nlp = collect(line, nree)
+            if len(nlp[1]) > 0:
+                numeral.append('')
+            else:
+                numeral.append(nlp[0][0][0])
+                line = nlp[0][0][1]
+            nlp = collect(line, lree)
+            if len(nlp[1]) > 0:
+                location.append(line)
+            else:
+                location.append(nlp[0][0][0])
+            
+
+
+
+
+
+
+
+
+
+
+
+        """    
         else:
             nlp = collect(info[i], yree)
             if len(nlp[1]) > 0:
@@ -486,23 +525,29 @@ def mitInfo(fname, yree, nree, lree):  # it works!!
                 numeral.append('')
                 location.append('')
             else:
-                try:
-                    year.append(nlp[0][0][0])
-                except:
-                    print('year',nlp)
-                try:
-                    nlp = collect(nlp[0][0][1], nree)
-                except:
-                    print(nlp)
+                year.append(nlp[0][0][0])
+                nlp = collect(nlp[0][0][1], nree)
                 if len(nlp[1]) > 0:
                     numeral.append('')
                     location.append('')
                 else:
                     numeral.append(nlp[0][0][0])
+                    location.append(nlp[0][0][1])
+                    '''
                     nlp = collect(nlp[0][0][1], lree)
                     if len(nlp[1]) > 0:
                         location.append('')
                     else:
                         location.append(nlp[0][0])
+                    '''
+                    """
     return [year, numeral, location]
 
+def mitInfoFinal(fname):  # make sure to clean up the info collumn if it spills out
+    years, numeral, locations = mitInfo(fname)
+    outl = list()
+    f = get(fname)
+    name = csvColumn(f, 0)
+    for i in range(len(f)):
+        outl.append([name[i], years[i], numeral[i], locations[i]])
+    return outl
