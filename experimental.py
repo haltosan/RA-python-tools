@@ -1,7 +1,6 @@
 from file_analysis import *
 
 
-
 pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
 os.chdir(pwd)
 
@@ -9,7 +8,7 @@ YEAR = r'(?P<year>(1(9(2|3).|\d\d\d|9.\d|.(2|3)\d))|(d(9\d\d|\d(2|3)\d))|(.9(2|3
 NUMERAL = r'(?P<numeral>[XVIxvil1]+)(?P<other>.*)'
 NUMERAL_OLD = r'(?P<numeral>^.{1,2}[XVIxvil1]*)(?P<other>.*)'
 LOCATION = r'^.* (?P<last>.*,.*)$'
-
+NUMERAL_STRICT = r'(?P<num>^X?(|IX|IV|V?I{0,3})$)'
 
 
 
@@ -551,3 +550,48 @@ def mitInfoFinal(fname):  # make sure to clean up the info collumn if it spills 
     for i in range(len(f)):
         outl.append([name[i], years[i], numeral[i], locations[i]])
     return outl
+
+def mitYearClean(fname):
+    f = get(fname)
+    years = csvColumn(f, 1)
+    _19 = lambda s : '19' + s[-2:]  # makes the first 2 chars '19'
+    _correct2 = lambda s : '3' if s in ['6', '8', '9'] else input(s)  # correct from things that look like 3
+    _correct = lambda s : '2' if s in ['2', '5', '7', '0'] else _correct2(s)  # correct from things that look like 2
+    _1 = lambda s : s if p.number(s[-1]) else s[:-1] + input(s)  # correct the 1's digit if it isn't a digit
+    _23 = lambda s : s if s[2] in ['1','2','3','4'] else s[:2] + _correct(s[2]) + s[-1]  # corrects 3rd digit to '2' or '3'
+    newYears = list()
+    for year in years:
+        if len(year) != 4:
+            y = year
+        else:
+            y = _1(_23(_19(year)))
+        newYears.append(y)
+    return newYears
+
+def mitNumeralClean1(fname):
+    #XVIxvil1
+    f = get(fname)
+    nums = csvColumn(f, 2)
+    I = ['I','i','l','1']
+    X = ['X','x']
+    V = ['V','v']
+    newNums = list()
+    for num in nums:
+        word = ''
+        for char in num:
+            if char in I:
+                char = 'I'
+            elif char in X:
+                char = 'X'
+            elif char in V:
+                char = 'V'
+            else:
+                raise Exception("Unknown char: " + char)
+            word += char
+        newNums.append(word)
+    return newNums
+
+def mitNumeralClean2(fname):
+    pass
+
+
