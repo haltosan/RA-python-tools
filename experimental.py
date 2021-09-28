@@ -1,7 +1,7 @@
 from file_analysis import *
 
 
-pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
+pwd = r'C:\Users\esimmon1\Downloads\Brown\Brown'
 os.chdir(pwd)
 
 YEAR = r'(?P<year>(1(9(2|3).|\d\d\d|9.\d|.(2|3)\d))|(d(9\d\d|\d(2|3)\d))|(.9(2|3)\d)|(Sp\.)|(Grad\.))(?P<other>.*$)'
@@ -9,7 +9,7 @@ NUMERAL = r'(?P<numeral>[XVIxvil1]+)(?P<other>.*)'
 NUMERAL_OLD = r'(?P<numeral>^.{1,2}[XVIxvil1]*)(?P<other>.*)'
 LOCATION = r'^.* (?P<last>.*,.*)$'
 NUMERAL_STRICT = r'(?P<num>^X?(|IX|IV|V?I{0,3})$)'
-
+PROGRAM = r'( \.?(?P<program>[APS]) \.?)(.*$)'
 
 
 ###########################################
@@ -591,7 +591,48 @@ def mitNumeralClean1(fname):
         newNums.append(word)
     return newNums
 
-def mitNumeralClean2(fname):
-    pass
+
+def brownProgram(fname, mname = 'brown.csv', year = '1921'):
+    f = cleanFile(get(fname), p.long)
+    master = get(mname)
+    names = csvColumn(master, 0)
+    years = csvColumn(master, 2)
+    programs = list()
+    total = len(f)
+    n = 0
+    for i in f:
+        index = -1
+        iters = 0
+        while True:
+            index = find(i, names[index + 1:])
+            if index is None:
+                break
+            if years[index] == year:
+                break
+            iters += 1
+            if iters > 4:  # max 4 tries to find something that works
+                index = None
+                break
+            
+        if index is None:
+            continue
+        program = collect(i, PROGRAM)[0]
+        if len(program) > 0:
+            programs.append([index, program[0][0]])
+            n += 1
+    print('ratio of variables extracted:',n / total)
+    return programs
+
+
+def brownMergeInfo(programs, mname = 'brown.csv'):
+    master = get(mname)
+    for ln in programs:
+        if len(ln) < 2:
+            print(ln)
+        i = ln[0]
+        program = ln[1]
+        master[i] += (','+program)
+    return master
+
 
 
