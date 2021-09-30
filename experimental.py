@@ -3,6 +3,7 @@ from file_analysis import *
 
 pwd = r'C:\Users\esimmon1\Downloads\Brown\Brown'
 os.chdir(pwd)
+print(pwd)
 
 YEAR = r'(?P<year>(1(9(2|3).|\d\d\d|9.\d|.(2|3)\d))|(d(9\d\d|\d(2|3)\d))|(.9(2|3)\d)|(Sp\.)|(Grad\.))(?P<other>.*$)'
 NUMERAL = r'(?P<numeral>[XVIxvil1]+)(?P<other>.*)'
@@ -482,9 +483,9 @@ def mitInfo(fname, yree = YEAR, nree = NUMERAL, lree = LOCATION):  # it works!!
             numeral.append('')
             location.append('')
         elif len(col3[i]) > 0:
-            year.append(csvSplit(f[i])[2])
-            numeral.append(csvSplit(f[i])[3])
-            location.append(csvSplit(f[i])[4])
+            year.append(csvSplit(f[i])[1])
+            numeral.append(csvSplit(f[i])[2])
+            location.append(csvSplit(f[i])[3])
         else:
             line = info[i]
             nlp = collect(line, yree)
@@ -504,42 +505,6 @@ def mitInfo(fname, yree = YEAR, nree = NUMERAL, lree = LOCATION):  # it works!!
                 location.append(line)
             else:
                 location.append(nlp[0][0][0])
-            
-
-
-
-
-
-
-
-
-
-
-
-        """    
-        else:
-            nlp = collect(info[i], yree)
-            if len(nlp[1]) > 0:
-                year.append('')
-                numeral.append('')
-                location.append('')
-            else:
-                year.append(nlp[0][0][0])
-                nlp = collect(nlp[0][0][1], nree)
-                if len(nlp[1]) > 0:
-                    numeral.append('')
-                    location.append('')
-                else:
-                    numeral.append(nlp[0][0][0])
-                    location.append(nlp[0][0][1])
-                    '''
-                    nlp = collect(nlp[0][0][1], lree)
-                    if len(nlp[1]) > 0:
-                        location.append('')
-                    else:
-                        location.append(nlp[0][0])
-                    '''
-                    """
     return [year, numeral, location]
 
 def mitInfoFinal(fname):  # make sure to clean up the info collumn if it spills out
@@ -568,7 +533,7 @@ def mitYearClean(fname):
         newYears.append(y)
     return newYears
 
-def mitNumeralClean1(fname):
+def mitNumeralClean(fname):
     #XVIxvil1
     f = get(fname)
     nums = csvColumn(f, 2)
@@ -586,34 +551,21 @@ def mitNumeralClean1(fname):
             elif char in V:
                 char = 'V'
             else:
-                raise Exception("Unknown char: " + char)
+                pass  # kepe char as is
             word += char
         newNums.append(word)
     return newNums
 
 
-def brownProgram(fname, mname = 'brown.csv', year = '1921'):
+def brownProgram(fname, mname = 'brown.csv'):
     f = cleanFile(get(fname), p.long)
     master = get(mname)
     names = csvColumn(master, 0)
-    years = csvColumn(master, 2)
     programs = list()
     total = len(f)
     n = 0
     for i in f:
-        index = -1
-        iters = 0
-        while True:
-            index = find(i, names[index + 1:])
-            if index is None:
-                break
-            if years[index] == year:
-                break
-            iters += 1
-            if iters > 4:  # max 4 tries to find something that works
-                index = None
-                break
-            
+        index = find(i, names)
         if index is None:
             continue
         program = collect(i, PROGRAM)[0]
