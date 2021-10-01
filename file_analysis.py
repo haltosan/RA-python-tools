@@ -4,7 +4,7 @@ import csv
 import re
 import predicates as p  # file of predicates for cleaning functions
 #execfile(fName)
-pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
+pwd = r'C:\Users\esimmon1\Downloads'
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 
 YEAR_RANGE = r'[23]'  # range of acceptable values in the 10's digit of the year

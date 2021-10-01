@@ -1,7 +1,7 @@
 from file_analysis import *
 
 
-pwd = r'C:\Users\esimmon1\Downloads\Brown\Brown'
+pwd = r'C:\Users\esimmon1\Downloads\Columbia'
 os.chdir(pwd)
 print(pwd)
 
@@ -142,8 +142,10 @@ def cleanCollect(fname='4.txt'):
     save(nlp[1], 'check.txt')
 
 
-def infoExtract(fname, infoN=2, regex=defaultRegex, outCol=4, spaceMatches=True):
+def infoExtract(fname, infoN=2, regex=defaultRegex, outCol=4, spaceMatches=True, preprocess = True):
     f = get(fname)
+    if preprocess:
+        f = cleanFile(f, lambda x : p.long(x) and len(x.strip(',')) > 1, charStrip, ',')
     for i in range(len(f)):
         while len(csvSplit(f[i])) < outCol:
             f[i] += ', '  # make sure we have the right amount of cols
