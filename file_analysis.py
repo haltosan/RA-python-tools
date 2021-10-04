@@ -404,9 +404,9 @@ def ghostBuster(fname):  # finds lines that start with a strange letter (b in th
                     if borderBlocks(lnIndex, f):
                         pass
                     else:
-                        outl.append(line)
+                        outl.append(line)  # anomaly; failed border detection
                 else:
-                    outl.append(line)  # anomaly
+                    outl.append(line)  # anomaly; not near border
     return outl
 
 

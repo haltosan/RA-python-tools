@@ -1,14 +1,14 @@
 from file_analysis import *
 
 
-pwd = r'C:\Users\esimmon1\Downloads\Columbia'
+pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
 os.chdir(pwd)
 print(pwd)
 
 YEAR = r'(?P<year>(1(9(2|3).|\d\d\d|9.\d|.(2|3)\d))|(d(9\d\d|\d(2|3)\d))|(.9(2|3)\d)|(Sp\.)|(Grad\.))(?P<other>.*$)'
 NUMERAL = r'(?P<numeral>[XVIxvil1]+)(?P<other>.*)'
 NUMERAL_OLD = r'(?P<numeral>^.{1,2}[XVIxvil1]*)(?P<other>.*)'
-LOCATION = r'^.* (?P<last>.*,.*)$'
+LOCATION = r'^.*\d+(?P<location>.*)'
 NUMERAL_STRICT = r'(?P<num>^X?(|IX|IV|V?I{0,3})$)'
 PROGRAM = r'( \.?(?P<program>[APS]) \.?)(.*$)'
 
@@ -142,7 +142,7 @@ def cleanCollect(fname='4.txt'):
     save(nlp[1], 'check.txt')
 
 
-def infoExtract(fname, infoN=2, regex=defaultRegex, outCol=4, spaceMatches=True, preprocess = True):
+def infoExtract(fname, infoN=1, regex=defaultRegex, outCol=4, spaceMatches=True, preprocess = True):
     f = get(fname)
     if preprocess:
         f = cleanFile(f, lambda x : p.long(x) and len(x.strip(',')) > 1, charStrip, ',')
@@ -156,10 +156,9 @@ def infoExtract(fname, infoN=2, regex=defaultRegex, outCol=4, spaceMatches=True,
     nlp = collect(info, regex=regex, spaceMatches=spaceMatches)
     infol = []
     for i in nlp[0]:
-        if type(i) is list:
-            infol.append(i[0])  # remove nested lists
-        else:
-            infol.append(i)
+        while type(i) is list:
+            i = i[0]
+        infol.append(i)
     o1 = csvMergeColumn(f, infol, outCol)
     for i in range(len(o1)):
         if len(o1[i]) < outCol:
@@ -588,5 +587,40 @@ def brownMergeInfo(programs, mname = 'brown.csv'):
         master[i] += (','+program)
     return master
 
+def mitVarMerge(fvarName, fmasterName, year, nameCol = 0, varCol = 4, outCol = 7, masterYear = 1):  # TEST ME ^_^
+    fvar = get(fvarName)
+    master = get(fmasterName)
+    
+    for i in range(len(master)):  # padding
+        while len(csvSplit(master[i])) < outCol:
+            master[i] += ', '  # make sure we have the right amount of cols
+            
+    varNames = csvColumn(fvar, nameCol)
+    var = csvColumn(fvar, varCol)
+    mNames = csvColumn(master, nameCol)
+    myear = csvColumn(master, masterYear)
 
+    for i in range(len(varNames)):
+        try:
+            index = mNames.index(varNames[i])
+        except ValueError:
+            continue  # not found
+        if (myear[index] != year):  #'''or master[outCol] is occupied'''
+            continue
+        master[index] = master[index] + ',' + var[i]
 
+    # make sure we're in right year
+    # make sure there isn't anything in the outCol already
+    # find where name from var is (exactly) in master
+    # put var to outCol in master
+    # save new master
+    return master
+
+'''
+Traceback (most recent call last):
+  File "<pyshell#41>", line 1, in <module>
+    x = mitVarMerge('21 info added.csv', 'done/21 done.csv', '1921')
+  File "C:\Users\esimmon1\Downloads\RA-python-tools-main\RA-python-tools-main\experimental.py", line 610, in mitVarMerge
+    master[index] = master[index] + ',' + var[i]
+TypeError: must be str, not list
+'''
