@@ -254,7 +254,7 @@ def csvColumn(texts, n, safe=True):
             outl.append(clean(csvSplit(i)[n], ['"']))
         except IndexError:
             if safe:
-                outl.append([])
+                outl.append('')
             else:
                 raise IndexError("Index " + str(n) + " out of range for texts")
     return outl
@@ -351,16 +351,10 @@ def cleanColumn(texts, n, cleaner=cleanChars, cleanerArg=p.nameChar):  # DEPENDA
 def charStrip(texts, chars, negate=False):  # negate not implemented; only for compatibility
     """removes chars from tails of texts (like trailing spaces)"""
     if type(texts) is str:
-        for i in range(len(chars)):  # almost worst case has chars list in reverse on the end
-            for char in chars:
-                texts = texts.strip(char)
+        texts = texts.strip(chars)
     elif type(texts) is list:
-        outl = texts
-        for i in range(len(chars)):
-            for line in range(len(texts)):
-                for char in chars:
-                    outl[line] = outl[line].strip(char)
-        texts = outl
+        for line in range(len(texts)):
+            texts[line] = texts[line].strip(chars)
     else:
         raise TypeError("Unknown type for texts arg")
     return texts

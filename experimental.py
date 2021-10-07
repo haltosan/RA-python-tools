@@ -591,6 +591,7 @@ def brownMergeInfo(programs, mname = 'brown.csv'):
 def mitVarMerge(fvarName, fmasterName, nameCol = 0, varCol = 1, outCol = 7):
     fvar = get(fvarName)
     master = get(fmasterName)
+    masterOutCol = csvColumn(master, outCol)
     
     for i in range(len(master)):  # padding
         while len(csvSplit(master[i])) < outCol:
@@ -612,13 +613,15 @@ def mitVarMerge(fvarName, fmasterName, nameCol = 0, varCol = 1, outCol = 7):
             index = mNames.index(varNames[i])
         except ValueError:
             continue  # not found
+        if len(masterOutCol[index]) > 2 or len(var2[i]) < 2:
+            continue
         master[index] = master[index] + ',' + csvText(var[i]) + ',' + csvText(var2[i])
 
-    # make sure there isn't anything in the outCol already [should have]
-    # find where name from var is (exactly) in master [need]
-    # put var to outCol in master [need]
+    # find where name from var is (exactly) in master [need, done]
+    # put var to outCol in master [need ,done]
     # save new master [nice to have]
-    return master
+    o1 = cleanFile(master, cleaner = (lambda t, x, negate = False : t.replace('""', '"')))
+    return o1
 
 def mitSplitLocation(fname, col):  # rerun on stuff to get better captures (when 1 group is missing)
     f = get(fname)
@@ -627,14 +630,58 @@ def mitSplitLocation(fname, col):  # rerun on stuff to get better captures (when
     for i in range(len(location)):
         if len(location[i]) < 1:
             location[i] = ''
-    nlp = collect(location, r'^(?P<l1>([^,\n]+,)?)(?P<l2>[^,\n]+(,).*)$', spaceMatches = True)
+    nlp = collect(location, r'(?P<l1>([^,]+,)?)(?P<l2>[^,]+(,).*)', spaceMatches = True)
     outl = list()
     for i in range(len(nlp[0])):
+        
         if len(nlp[0][i]) < 1:
             outl.append([' ',' '])
-        elif len(nlp[0][i][0]) < 2:
+        elif len(nlp[0][i]) < 2:
             outl.append([' ', nlp[0][i][1]])
         else:
-            outl.append(nlp[0][i])
+            outl.append(nlp[0][i])        
     return outl
+
+def mitFinalMerge(fname, inCol = 7, outCol = 3):
+    f = get(fname)
+    outC = csvColumn(f, outCol)
+    inC = csvColumn(f, inCol)
+
+    c = 0
+    outl = list()
+    for i in range(len(f)):
+        if len(outC[i]) < 1:
+            c += 1
+        elif len(inC[i]) < 2 and len(outC[i]) > 0:  # check that input has something
+            part1 = f[i][:f[i].index(outC[i]) - 1]  # if not, keep what we have
+            part2 = outC[i]
+            outl.append(part1 + csvText(part2))
+            #print(part1, '|||', part2)
+        else:  # bring vars from in to out
+            part1 = f[i][:f[i].index(outC[i]) - 1]
+            part2 = outC[i]
+            part3 = f[i][f[i].index(outC[i]) + len(outC[i]) + 1:]
+            outl.append(part1 + part3.strip(', '))
+    print('missed',c,'entries')
+    return outl
+        
+def mitSplitLocation(fname, locationCol = 4):  # ^_^ TEST ME
+    f = get(fname)
+    locCol = csvColumn(f, 4)
+    location = list()
+    for i in locCol:
+        try:
+            location.append(i.split(','))
+        except:
+            location.append([''])
+    outl = list()
+    for i in range(len(location)):
+        outl.append(csvSplit(f[i]) + location[i])
+    return outl
+
+
+
+
+
+
 
