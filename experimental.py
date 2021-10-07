@@ -143,6 +143,7 @@ def cleanCollect(fname='4.txt'):
 
 
 def infoExtract(fname, infoN=1, regex=defaultRegex, outCol=4, spaceMatches=True, preprocess = True):
+    """runs collect function on a collumn from fname and outputs it in the outcol"""
     f = get(fname)
     if preprocess:
         f = cleanFile(f, lambda x : p.long(x) and len(x.strip(',')) > 1, charStrip, ',')
@@ -587,7 +588,7 @@ def brownMergeInfo(programs, mname = 'brown.csv'):
         master[i] += (','+program)
     return master
 
-def mitVarMerge(fvarName, fmasterName, year, nameCol = 0, varCol = 4, outCol = 7, masterYear = 1):  # TEST ME ^_^
+def mitVarMerge(fvarName, fmasterName, nameCol = 0, varCol = 1, outCol = 7):
     fvar = get(fvarName)
     master = get(fmasterName)
     
@@ -595,32 +596,45 @@ def mitVarMerge(fvarName, fmasterName, year, nameCol = 0, varCol = 4, outCol = 7
         while len(csvSplit(master[i])) < outCol:
             master[i] += ', '  # make sure we have the right amount of cols
             
-    varNames = csvColumn(fvar, nameCol)
+    varNames = csvColumn(fvar, nameCol)  # parallel arrays with name and corresponding var
     var = csvColumn(fvar, varCol)
+    var2 = csvColumn(fvar, varCol + 1)
+    for i in range(len(var)):  # ensure we are always dealing with strings, not empty lists
+        if len(var[i]) < 1:
+            var[i] = ''
+    for i in range(len(var2)):
+        if len(var2[i]) < 1:
+            var2[i] = ''
     mNames = csvColumn(master, nameCol)
-    myear = csvColumn(master, masterYear)
 
     for i in range(len(varNames)):
         try:
             index = mNames.index(varNames[i])
         except ValueError:
             continue  # not found
-        if (myear[index] != year):  #'''or master[outCol] is occupied'''
-            continue
-        master[index] = master[index] + ',' + var[i]
+        master[index] = master[index] + ',' + csvText(var[i]) + ',' + csvText(var2[i])
 
-    # make sure we're in right year
-    # make sure there isn't anything in the outCol already
-    # find where name from var is (exactly) in master
-    # put var to outCol in master
-    # save new master
+    # make sure there isn't anything in the outCol already [should have]
+    # find where name from var is (exactly) in master [need]
+    # put var to outCol in master [need]
+    # save new master [nice to have]
     return master
 
-'''
-Traceback (most recent call last):
-  File "<pyshell#41>", line 1, in <module>
-    x = mitVarMerge('21 info added.csv', 'done/21 done.csv', '1921')
-  File "C:\Users\esimmon1\Downloads\RA-python-tools-main\RA-python-tools-main\experimental.py", line 610, in mitVarMerge
-    master[index] = master[index] + ',' + var[i]
-TypeError: must be str, not list
-'''
+def mitSplitLocation(fname, col):  # rerun on stuff to get better captures (when 1 group is missing)
+    f = get(fname)
+    name = csvColumn(f, 0)
+    location = csvColumn(f, col)
+    for i in range(len(location)):
+        if len(location[i]) < 1:
+            location[i] = ''
+    nlp = collect(location, r'^(?P<l1>([^,\n]+,)?)(?P<l2>[^,\n]+(,).*)$', spaceMatches = True)
+    outl = list()
+    for i in range(len(nlp[0])):
+        if len(nlp[0][i]) < 1:
+            outl.append([' ',' '])
+        elif len(nlp[0][i][0]) < 2:
+            outl.append([' ', nlp[0][i][1]])
+        else:
+            outl.append(nlp[0][i])
+    return outl
+

@@ -415,7 +415,7 @@ def ghostBuster(fname):  # finds lines that start with a strange letter (b in th
 ###############
 
 def collect(text, regex=defaultRegex, spaceMatches=False):  # basically the same as the nlp.py project, just accepts lists now
-    """returns everything that matches the regex in matches, leftovers in non_matches"""
+    """returns everything that matches the regex in matches, leftovers in non_matches; spaceMatches can be False, keep, or True"""
     people_re = re.compile(regex)
     matches = []
     non_matches = []
