@@ -665,9 +665,9 @@ def mitFinalMerge(fname, inCol = 7, outCol = 3):
     print('missed',c,'entries')
     return outl
         
-def mitSplitLocation(fname, locationCol = 4):  # ^_^ TEST ME
+def mitSplitLocation(fname, locationCol = 3):  # ^_^ TEST ME
     f = get(fname)
-    locCol = csvColumn(f, 4)
+    locCol = csvColumn(f, locationCol)
     location = list()
     for i in locCol:
         try:
@@ -679,9 +679,34 @@ def mitSplitLocation(fname, locationCol = 4):  # ^_^ TEST ME
         outl.append(csvSplit(f[i]) + location[i])
     return outl
 
+def mitPutLocation(fname, locraw = 3, locnew = 7):
+    f = get(fname)
+    loc1raw = csvColumn(f, locraw)
+    loc2raw = csvColumn(f, locraw + 1)
+    loc1new = csvColumn(f, locnew)
+    loc2new = csvColumn(f, locnew + 1)
+    for i in range(len(f)):
+        if len(loc2new[i]) > 0:
+            loc1raw[i] = loc1new[i]
+            loc2raw[i] = loc2new[i]
+    name = csvColumn(f, 0)
+    year = csvColumn(f, 1)
+    program =csvColumn(f, 2)
+    outl = list()
+    for i in range(len(f)):
+        outl.append([name[i]] + [year[i]] + [program[i]] + [loc1raw[i]] + [loc2raw[i]])
+    return outl
+    
 
 
 
 
 
-
+'''
+get location1raw
+get split locations1/2new
+if location2new has stuff and location1raw has nothing:
+  make location1/2raw into what locations1/2new have
+else:
+  continue on your way
+'''
