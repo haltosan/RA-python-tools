@@ -1,7 +1,7 @@
 from file_analysis import *
 
 
-pwd = r'C:\Users\esimmon1\Downloads\Massachusetts Institute of Technology\Massachusetts Institute of Technology'
+pwd = r'C:\Users\esimmon1\Downloads\Princeton\Princeton University'
 os.chdir(pwd)
 print(pwd)
 
@@ -51,18 +51,15 @@ def nameCleanInfo(f, n):
     save(nameInfo, '192' + str(n) + ' need info clean.csv')
 
 
-def fileStrip(f, cleanerArg=',. '):
+def fileStrip(f, cleanerArg=',. ', maxCol = 3):
     # assume a header
     outl = []
     i = 0
-    while True:
-        try:
-            column = csvColumn(f, i)  # throws out of bounds error when index is wrong
-            i += 1
-        except IndexError:
-            return outl
+    for i in range(maxCol):
+        column = csvColumn(f, i)  # throws out of bounds error when index is wrong
         newCol = cleanFile(column, cleaner=charStrip, cleanerArg=cleanerArg)
         outl.append(newCol)
+    return outl
 
 
 def settingsChanger():
@@ -703,10 +700,30 @@ def mitPutLocation(fname, locraw = 3, locnew = 7):
 
 
 '''
-get location1raw
-get split locations1/2new
-if location2new has stuff and location1raw has nothing:
-  make location1/2raw into what locations1/2new have
-else:
-  continue on your way
+ o1 = fileStrip(get('21 names.csv'), ',. *-_"')
+>>> len(o1)
+3
+>>> save(o1, 'tmp.csv', True)
+>>> o2 = list()
+>>> len(o1[0])
+1772
+>>> len(o1[1])
+1772
+>>> len(o1[2])
+1772
+>>> w = 1772
+>>> l = 3
+>>> for i in range(w):
+	o2.append([o1[0][i], o1[1][i], o1[2][i]])
+
+	
+>>> save(o2, 'tmp.csv', True)
+>>> ys = ['21', '22','23','24','25','26']
+>>> for y in ys:
+	o1 = fileStrip(get(y + ' names.csv'), ',. *-_"')
+	o2 = list()
+	for i in range(len(o1[0])):
+		o2.append([o1[0][i], o1[1][i], o1[2][i]])
+	save(o2, y + ' cleaned.csv', True)
 '''
+
