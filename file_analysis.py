@@ -350,11 +350,18 @@ def cleanColumn(texts, n, cleaner=cleanChars, cleanerArg=p.nameChar):  # DEPENDA
 
 def charStrip(texts, chars, negate=False):  # negate not implemented; only for compatibility
     """removes chars from tails of texts (like trailing spaces)"""
+    if type(chars) is list or type(chars) is str:
+        pass
+    else:
+        raise TypeError("Unknown type for chars arg")
+    
     if type(texts) is str:
-        texts = texts.strip(chars)
+        for char in chars:
+            texts = texts.strip(char)
     elif type(texts) is list:
         for line in range(len(texts)):
-            texts[line] = texts[line].strip(chars)
+            for char in chars:
+                texts[line] = texts[line].strip(char)
     else:
         raise TypeError("Unknown type for texts arg")
     return texts
@@ -362,7 +369,7 @@ def charStrip(texts, chars, negate=False):  # negate not implemented; only for c
 
 def borderBlocks(i, f):  # helper function for ghost buster; finds the border of an alphabetical section (aaaabbb) using blocks
     blockSize = 5
-    offset = int(blockSize * .3)
+    offset = int(blockSize * .3)  # offsets by 30% (to ensure we aren't repeating a false positive from initial detection)
     b1 = [clean(i, ' "')[0] for i in f[i - offset - blockSize : i - offset]]  # looks back to find origin letter (only takes first letter)
     b2 = [clean(i, ' "')[0] for i in f[i + blockSize - offset : i + 2 * blockSize - offset]]  # looks forward to find destination letter
     getTrump = lambda lst : max(set(lst), key=lst.count)  # function for finding most common letter in a block

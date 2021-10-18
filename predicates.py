@@ -117,6 +117,13 @@ def regex(text):
 def printableChar(text):
     return (ord(text) >= 32) and (ord(text) <= 126)  # ascii numbers for printable chars
 
+def printableWord(text):
+    for i in text:
+        if printableChar(i):  # ignore printable chars
+            pass
+        else:
+            return False  # return false if bad char found
+    return True
 
 def space(text):
     return text.isspace()

@@ -12,6 +12,8 @@ LOCATION = r'^.*\d+(?P<location>.*)'
 NUMERAL_STRICT = r'(?P<num>^X?(|IX|IV|V?I{0,3})$)'
 PROGRAM = r'( \.?(?P<program>[APS]) \.?)(.*$)'
 
+years = ['21', '22', '23', '24', '25', '26']
+
 
 ###########################################
 ### STILL IN DEVELOPMENT
@@ -56,7 +58,7 @@ def fileStrip(f, cleanerArg=',. ', maxCol = 3):
     outl = []
     i = 0
     for i in range(maxCol):
-        column = csvColumn(f, i)  # throws out of bounds error when index is wrong
+        column = csvColumn(f, i, safe=False)  # throws out of bounds error when index is wrong
         newCol = cleanFile(column, cleaner=charStrip, cleanerArg=cleanerArg)
         outl.append(newCol)
     return outl
