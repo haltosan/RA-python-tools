@@ -333,8 +333,11 @@ def cleanWords(text, pred, negate=False):
 def cleanChars(text, pred, negate=False):
     """skip chars that cause pred to be false, can negate predicate"""
     outs = ""
+    if type(text) is not str:
+        print(type(text))
+        raise TypeError("Expecting a string for text")
     for char in text:
-        if pred(char) if negate else not pred(char):  # skip if pred is false, or opposite if negate is true
+        if pred(char) if negate else (not pred(char)):  # skip if pred is false, or opposite if negate is true
             pass
         else:
             outs += char

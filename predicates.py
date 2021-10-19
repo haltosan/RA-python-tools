@@ -143,3 +143,5 @@ def repeatedLetters(text):
 
 def number(text):
     return text.isnumeric()
+
+

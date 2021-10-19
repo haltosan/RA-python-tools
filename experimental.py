@@ -58,7 +58,7 @@ def fileStrip(f, cleanerArg=',. ', maxCol = 3):
     outl = []
     i = 0
     for i in range(maxCol):
-        column = csvColumn(f, i, safe=False)  # throws out of bounds error when index is wrong
+        column = csvColumn(f, i)
         newCol = cleanFile(column, cleaner=charStrip, cleanerArg=cleanerArg)
         outl.append(newCol)
     return outl
@@ -698,7 +698,41 @@ def mitPutLocation(fname, locraw = 3, locnew = 7):
     
 
 
+def princeStartingCapsWords(fname, locCol = 1):
+    p.MOSTLY_CAPS_THRESHOLD = .9
+    f = get(fname)
+    loc = csvColumn(f, locCol)
+    outl = []
+    for line in loc:
+        words = line.split(' ')
+        newline = ''
+        i = 0
+        for word in words:
+            i+= 1
+            if i < (len(words) / 2):
+                if p.mostlyCaps(word):
+                    pass
+                else:
+                    newline += word + ' '
+            else:
+                newline += word + ' '
+        outl.append(newline.strip(' '))
+    return outl
 
+def badPrince(fname):
+    f = get(fname)
+    DEV = 4.521829570824174  # precomputed values based on name length
+    MEAN = 22.02810980133542
+    names = csvColumn(f, 0)
+    badboiz = list()
+    for i in range(len(names)):
+        nl = len(names[i])
+        if nl >= MEAN + DEV + DEV:
+            badboiz.append([i, names[i]])
+        elif nl <= MEAN - DEV - DEV:
+            badboiz.append([i, names[i]])
+    return badboiz
+            
 
 
 '''
