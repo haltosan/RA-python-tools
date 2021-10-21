@@ -719,11 +719,13 @@ def princeStartingCapsWords(fname, locCol = 1):
         outl.append(newline.strip(' '))
     return outl
 
-def badPrince(fname):
+def badPrince(fname, col = 1):
     f = get(fname)
     DEV = 4.521829570824174  # precomputed values based on name length
     MEAN = 22.02810980133542
-    names = csvColumn(f, 0)
+    MEAN = 15.352878113145307
+    DEV = 4.814625780525751
+    names = csvColumn(f, col)
     badboiz = list()
     for i in range(len(names)):
         nl = len(names[i])
