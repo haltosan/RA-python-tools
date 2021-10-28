@@ -1,9 +1,11 @@
 from file_analysis import *
 
 
-pwd = r'C:\Users\esimmon1\Downloads\Princeton\Princeton University'
+pwd = r'C:\Users\esimmon1\Downloads\Harvard\Harvard'
 os.chdir(pwd)
 print(pwd)
+
+Y = lambda g: (lambda f: g(lambda arg: f(f)(arg))) (lambda f: g(lambda arg: f(f)(arg)))
 
 YEAR = r'(?P<year>(1(9(2|3).|\d\d\d|9.\d|.(2|3)\d))|(d(9\d\d|\d(2|3)\d))|(.9(2|3)\d)|(Sp\.)|(Grad\.))(?P<other>.*$)'
 NUMERAL = r'(?P<numeral>[XVIxvil1]+)(?P<other>.*)'
@@ -12,6 +14,8 @@ LOCATION = r'^.*\d+(?P<location>.*)'
 NUMERAL_STRICT = r'(?P<num>^X?(|IX|IV|V?I{0,3})$)'
 PROGRAM = r'( \.?(?P<program>[APS]) \.?)(.*$)'
 
+R1 = r'^(?P<name>[A-Z a-z]+, [A-Za-z \-]+(, Jr.)?(,|\.)? )(?P<info>.*)'
+
 years = ['21', '22', '23', '24', '25', '26']
 
 
@@ -19,41 +23,8 @@ years = ['21', '22', '23', '24', '25', '26']
 ### STILL IN DEVELOPMENT
 ###########################################
 
-
-def nameCleanInfo(f, n):
-    o1 = slapThatInfoOn(f)
-    names = []
-    for i in o1:
-        names.append(i[0])
-    names[0] = clean(names[0], ['\ufeff'])
-    save(names, 'names' + str(n) + '.txt')
-    reee = "(?P<name>[A-Z][a-z]+, ((([A-Z][A-Za-z]+.?)+)))"
-    nolineNames = '\n'.join(names)
-    nlp = collect(nolineNames, reee)
-    outs = ''
-    outl = []
-    for i in nlp[0]:
-        for l in i:
-            outs += l
-        outl.append(outs)
-        outs = ''
-    save(names, 'names' + str(n) + '.txt')
-    cleanNames = outl
-    full = o1
-    noname = o1
-    for i in range(len(names)):
-        noname[i][0] = noname[i][0].replace(names[i], '')
-    info = []
-    for i in noname:
-        info.append(' '.join(i))
-
-    nameInfo = []
-    for i in range(len(info)):
-        nameInfo.append([cleanNames[i], clean(info[i], [',', '"', '\''])])
-    save(nameInfo, '192' + str(n) + ' need info clean.csv')
-
-
 def fileStrip(f, cleanerArg=',. ', maxCol = 3):
+    """Run charStrip on each collumn, up to maxCol"""
     # assume a header
     outl = []
     i = 0
@@ -65,6 +36,7 @@ def fileStrip(f, cleanerArg=',. ', maxCol = 3):
 
 
 def settingsChanger():
+    """An experiment to figure out optimal OCR settings; will get better results with higher settings"""
     configPath = r'config.txt'
     config = get(configPath)
     quality = int(config[5])
@@ -94,6 +66,8 @@ def settingsChanger():
 
 
 def bestPages(dirname='52'):
+    """Compares quality of OCR files based on how many names a regex collects\
+Scans a directory and compares all files inside it"""
     outll = []
     os.chdir(dirname)
     dirScan = os.scandir()
@@ -176,7 +150,39 @@ def infoExtract(fname, infoN=1, regex=defaultRegex, outCol=4, spaceMatches=True,
 ### MOST LIKELY NOT REUSABLE
 ###########################################
 
+def nameCleanInfo(f, n):
+    o1 = slapThatInfoOn(f)
+    names = []
+    for i in o1:
+        names.append(i[0])
+    names[0] = clean(names[0], ['\ufeff'])
+    save(names, 'names' + str(n) + '.txt')
+    reee = "(?P<name>[A-Z][a-z]+, ((([A-Z][A-Za-z]+.?)+)))"
+    nolineNames = '\n'.join(names)
+    nlp = collect(nolineNames, reee)
+    outs = ''
+    outl = []
+    for i in nlp[0]:
+        for l in i:
+            outs += l
+        outl.append(outs)
+        outs = ''
+    save(names, 'names' + str(n) + '.txt')
+    cleanNames = outl
+    full = o1
+    noname = o1
+    for i in range(len(names)):
+        noname[i][0] = noname[i][0].replace(names[i], '')
+    info = []
+    for i in noname:
+        info.append(' '.join(i))
 
+    nameInfo = []
+    for i in range(len(info)):
+        nameInfo.append([cleanNames[i], clean(info[i], [',', '"', '\''])])
+    save(nameInfo, '192' + str(n) + ' need info clean.csv')
+
+    
 def geoff(f, n):
     reee = "(?P<name>[A-Z][a-z]+, [A-Z][a-z]+(,? )([A-Z][a-z]+)?(jr.)?), "
     names = []
@@ -765,3 +771,14 @@ def badPrince(fname, col = 1):
 	save(o2, y + ' cleaned.csv', True)
 '''
 
+'''
+*v*
+o1 = cleanFile(f, lambda t: p.long(t) and not p.hasPage(t), cleanChars, p.printableChar)
+o2 = cleanFile(o1, cleaner = clean, cleanerArg = ['\'', '"', '=', '`', '-'])
+o3 = charStrip(o2, [' ', '*',','])
+o4 = cleanFile(o3, None, cleanChars, p.addressChar, True)
+o5 = cleanFile(o4, None, clean, '.')
+R1 = r'^(?P<name>[A-Z a-z]+, [A-Za-z \-]+(, Jr)?(,|)? )(?P<info>.*)'
+
+caps = lambda words: Y(lambda f: lambda n: (False if (words.split(' ')[n][0].islower()) else True if n >= len(words.split(' '))-1 else f(n+1)))(0)
+'''

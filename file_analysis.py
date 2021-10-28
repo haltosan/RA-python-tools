@@ -370,7 +370,7 @@ def charStrip(texts, chars, negate=False):  # negate not implemented; only for c
     return texts
 
 
-def borderBlocks(i, f):  # helper function for ghost buster; finds the border of an alphabetical section (aaaabbb) using blocks
+def borderBlocks(i, f, quiet = True):  # helper function for ghost buster; finds the border of an alphabetical section (aaaabbb) using blocks
     blockSize = 5
     offset = int(blockSize * .3)  # offsets by 30% (to ensure we aren't repeating a false positive from initial detection)
     b1 = [clean(i, ' "')[0] for i in f[i - offset - blockSize : i - offset]]  # looks back to find origin letter (only takes first letter)
@@ -382,17 +382,19 @@ def borderBlocks(i, f):  # helper function for ghost buster; finds the border of
     try:
         trumpDiff = (alpha.index(t2) - alpha.index(t1))
     except ValueError:
-        print(t1, t2, f[i])
+        if not quiet:
+            print(t1, t2, f[i])
         return False  # trump not in alphabet
     if trumpDiff <= 2 and trumpDiff >= 0:        
         firstValue = ord(clean(f[i], ' "')[0])
         if firstValue >= ord(t1) and firstValue <= ord(t2):  # if the starting letter is between the 2 letters
             return True
-    print(t1, t2, f[i])
+    if not quiet:
+        print(t1, t2, f[i])
     return False
 
 
-def ghostBuster(fname):  # finds lines that start with a strange letter (b in the middle of the e section); DEPENDANT ON borderBlocks
+def ghostBuster(fname, quiet = True):  # finds lines that start with a strange letter (b in the middle of the e section); DEPENDANT ON borderBlocks
     """finds lines that start with strange letters (Benson in the middle of the F section) and prints them out"""
     f = get(fname)
     blockSize = 20
@@ -405,7 +407,7 @@ def ghostBuster(fname):  # finds lines that start with a strange letter (b in th
             line = f[lnIndex]
             if clean(line, ' "')[0] != trump:  # if the line doesn't start with the most common letter it is most likely an anomaly
                 if (i <= int(blockSize*.3) or i>= blockSize - int(blockSize*.3)):  # if it's in the first or last 30% it could be on the border of 2 sections (aaaabbb) and is therefore not an anomaly
-                    if borderBlocks(lnIndex, f):
+                    if borderBlocks(lnIndex, f, quiet):
                         pass
                     else:
                         outl.append(line)  # anomaly; failed border detection
