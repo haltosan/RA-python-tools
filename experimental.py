@@ -72,8 +72,8 @@ Scans a directory and compares all files inside it"""
     os.chdir(dirname)
     dirScan = os.scandir()
     formats = []
-    numNamesFound = [0] * 5  # 5 file formats
-    regex = NAME
+    numNamesFound = [0] * 5  # 5 file formats max
+    regex = R1
     while True:
         try:
             fname = next(dirScan).name
@@ -98,6 +98,7 @@ Scans a directory and compares all files inside it"""
     print(nameSum, "total names")
     settings = [1, 12, 3, 4, 6]
     print('Best setting:', settings[max(set(chosens), key=chosens.count)])
+    print(numNamesFound)
     os.chdir('..')
     return outll
 
@@ -781,4 +782,6 @@ o5 = cleanFile(o4, None, clean, '.')
 R1 = r'^(?P<name>[A-Z a-z]+, [A-Za-z \-]+(, Jr)?(,|)? )(?P<info>.*)'
 
 caps = lambda words: Y(lambda f: lambda n: (False if (words.split(' ')[n][0].islower()) else True if n >= len(words.split(' '))-1 else f(n+1)))(0)
+bot = lambda begin, end: Y(lambda f: lambda n: True and print('No more bottles of pop on the wall') if n <= begin-1 else print(n, 'bottles of pop on the wall') or f(n-1))(end)
+xy = lambda table: Y( lambda fy: lambda y: None if y >= len(table) else Y(lambda fx: lambda x: None if x >= len(table[0]) else print(table[y][x]) or fx(x+1))(0) or fy(y+1))(0)
 '''

@@ -102,6 +102,9 @@ def find(item, texts):
             return i
     return None
 
+def ls():
+    for file in os.listdir():
+        print(file, end='\t\t')
 
 ############################
 ### CHECK FILE FUNCTIONS ###
