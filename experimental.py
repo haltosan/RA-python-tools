@@ -37,7 +37,7 @@ def cleanCollect(fname='4.txt'):
 
 
 def infoExtract(fname, infoN=1, regex=defaultRegex, outCol=4, spaceMatches=True, preprocess = True):
-    """runs collect function on a collumn from fname and outputs it in the outcol"""
+    """runs collect on a collumn from fname and outputs it in the outcol"""
     f = get(fname)
     if preprocess:
         f = cleanFile(f, lambda x : p.long(x) and len(x.strip(',')) > 1, charStrip, ',')
@@ -47,7 +47,7 @@ def infoExtract(fname, infoN=1, regex=defaultRegex, outCol=4, spaceMatches=True,
     info = csvColumn(f, infoN)
     for i in range(len(info)):
         if len(info[i]) < 1:
-            info[i] = ' '  # collect no like blank strings
+            info[i] = ' '  # collect doesn't like blank strings
     nlp = collect(info, regex=regex, spaceMatches=spaceMatches)
     infol = []
     for i in nlp[0]:

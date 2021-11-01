@@ -437,7 +437,7 @@ def fileStrip(f, cleanerArg=',. ', maxCol = 3):
     return pivot
 
 
-def bestPages(dirname='21', regex=R1):
+def bestPages(dirname='21', regex=defaultRegex):
     """Compares quality of OCR files based on how many names a regex collects\
 Scans a directory and compares all files inside it"""
     outll = []
