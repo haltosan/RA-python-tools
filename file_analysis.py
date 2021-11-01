@@ -277,7 +277,7 @@ def csvMergeColumn(fullTexts, column, n):
 
 ### clean functions need 3 arguments: text(s), arg, negate
 ### negate needs to be named negate, but it isn't positional
-### the argument is normally a predicate, but it doesn't have to be
+### arg is normally a predicate, but it doesn't have to be
 ### clean functions are expected to return text(s)
 
 def clean(text, rems=None, negate=False):
@@ -417,6 +417,61 @@ def ghostBuster(fname, quiet = True):  # finds lines that start with a strange l
                 else:
                     outl.append(line)  # anomaly; not near border
     return outl
+
+
+def fileStrip(f, cleanerArg=',. ', maxCol = 3):
+    """Run charStrip on each collumn, up to maxCol"""
+    # assume a header
+    outl = []
+    i = 0
+    for i in range(maxCol):
+        column = csvColumn(f, i)
+        newCol = cleanFile(column, cleaner=charStrip, cleanerArg=cleanerArg)
+        outl.append(newCol)
+    pivot = []
+    for x in range(len(outl[0])):  # for some odd reason, the table always comes out inverted (or pivoted); we need to rotate back
+        line = []
+        for y in range(len(outl)):
+            line.append(outl[y][x])
+        pivot.append(line)
+    return pivot
+
+
+def bestPages(dirname='21', regex=R1):
+    """Compares quality of OCR files based on how many names a regex collects\
+Scans a directory and compares all files inside it"""
+    outll = []
+    os.chdir(dirname)
+    dirScan = os.scandir()
+    formats = []
+    numNamesFound = [0] * 5  # 5 file formats max
+    while True:
+        try:
+            fname = next(dirScan).name
+        except StopIteration:
+            break
+        f = get(fname, 'PAGE')
+        formats.append(f)
+    del dirScan, dirname, f, fname
+    nameSum = 0
+    chosens = []
+    for pageI in range(2):
+        for fIndex in range(len(formats)):
+            f = formats[fIndex]
+            page = f[pageI].split('\n')
+            nlp = collect(page, regex)
+            numNamesFound[fIndex] = len(nlp[0])
+        chosenOne = numNamesFound.index(max(numNamesFound))
+        chosens.append(chosenOne)
+        nameSum += numNamesFound[chosenOne]
+        outll.append(collect(formats[chosenOne][pageI], regex))
+
+    print(nameSum, "total names")
+    settings = [1, 12, 3, 4, 6]  # this is the ordering returned by os.scandir
+    print('Best setting:', settings[max(set(chosens), key=chosens.count)])
+    print('Number of names found for each year:',numNamesFound)
+    os.chdir('..')
+    return outll
 
 
 ###############

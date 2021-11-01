@@ -1,7 +1,7 @@
 from file_analysis import *
 
 
-pwd = r'C:\Users\esimmon1\Downloads\Harvard\Harvard'
+pwd = r'C:\Users\esimmon1\Downloads' #\Harvard\Harvard'
 os.chdir(pwd)
 print(pwd)
 
@@ -22,86 +22,6 @@ years = ['21', '22', '23', '24', '25', '26']
 ###########################################
 ### STILL IN DEVELOPMENT
 ###########################################
-
-def fileStrip(f, cleanerArg=',. ', maxCol = 3):
-    """Run charStrip on each collumn, up to maxCol"""
-    # assume a header
-    outl = []
-    i = 0
-    for i in range(maxCol):
-        column = csvColumn(f, i)
-        newCol = cleanFile(column, cleaner=charStrip, cleanerArg=cleanerArg)
-        outl.append(newCol)
-    return outl
-
-
-def settingsChanger():
-    """An experiment to figure out optimal OCR settings; will get better results with higher settings"""
-    configPath = r'config.txt'
-    config = get(configPath)
-    quality = int(config[5])
-    maxNames = -1
-    last = -1
-    current = 0
-    change = 75
-    up = True
-    regex = r'^(?P<name>A[a-z]+, ([A-Z][a-z]+(, )?)+)'
-    while input('[]') != 'end':
-        f = get('Cornell_1921-12.txt')
-        nlp = collect(f, regex)
-        current = len(nlp[0])
-        if current < last - 3:
-            up = not up
-            change /= 2
-        if current > maxNames:
-            print('max:', current, quality)
-            maxNames = current
-        print(current, quality)
-        last = current
-        quality += (1 if up else -1) * change
-        quality = int(quality)
-        config[5] = str(quality)
-        save(config, configPath)
-        save(nlp[0], 'tmp.txt')
-
-
-def bestPages(dirname='52'):
-    """Compares quality of OCR files based on how many names a regex collects\
-Scans a directory and compares all files inside it"""
-    outll = []
-    os.chdir(dirname)
-    dirScan = os.scandir()
-    formats = []
-    numNamesFound = [0] * 5  # 5 file formats max
-    regex = R1
-    while True:
-        try:
-            fname = next(dirScan).name
-        except StopIteration:
-            break
-        f = get(fname, 'PAGE')
-        formats.append(f)
-    del dirScan, dirname, f, fname
-    nameSum = 0
-    chosens = []
-    for pageI in range(2):
-        for fIndex in range(len(formats)):
-            f = formats[fIndex]
-            page = f[pageI].split('\n')
-            nlp = collect(page, regex)
-            numNamesFound[fIndex] = len(nlp[0])
-        chosenOne = numNamesFound.index(max(numNamesFound))
-        chosens.append(chosenOne)
-        nameSum += numNamesFound[chosenOne]
-        outll.append(collect(formats[chosenOne][pageI], regex))
-
-    print(nameSum, "total names")
-    settings = [1, 12, 3, 4, 6]
-    print('Best setting:', settings[max(set(chosens), key=chosens.count)])
-    print(numNamesFound)
-    os.chdir('..')
-    return outll
-
 
 def cleanCollect(fname='4.txt'):
     f = get(fname)
@@ -150,6 +70,35 @@ def infoExtract(fname, infoN=1, regex=defaultRegex, outCol=4, spaceMatches=True,
 ###########################################
 ### MOST LIKELY NOT REUSABLE
 ###########################################
+
+def settingsChanger():
+    """An experiment to figure out optimal OCR settings; will get better results with higher settings"""
+    configPath = r'config.txt'
+    config = get(configPath)
+    quality = int(config[5])
+    maxNames = -1
+    last = -1
+    current = 0
+    change = 75
+    up = True
+    regex = r'^(?P<name>A[a-z]+, ([A-Z][a-z]+(, )?)+)'
+    while input('[]') != 'end':
+        f = get('Cornell_1921-12.txt')
+        nlp = collect(f, regex)
+        current = len(nlp[0])
+        if current < last - 3:
+            up = not up
+            change /= 2
+        if current > maxNames:
+            print('max:', current, quality)
+            maxNames = current
+        print(current, quality)
+        last = current
+        quality += (1 if up else -1) * change
+        quality = int(quality)
+        config[5] = str(quality)
+        save(config, configPath)
+        save(nlp[0], 'tmp.txt')
 
 def nameCleanInfo(f, n):
     o1 = slapThatInfoOn(f)
