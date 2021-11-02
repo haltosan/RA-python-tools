@@ -106,6 +106,16 @@ def ls():
     for file in os.listdir():
         print(file, end='\t\t')
 
+def batchPrint(lst, batchSize = 10):
+    """prints out the list lst batchSize lines at a time"""
+    n = 0
+    mx = str(int(len(lst) / batchSize))
+    for i in lst:
+        if n%batchSize == 0:
+            input('[' + str(int(n / batchSize)) + '/' + mx + ']')
+        print(i)
+        n+=1
+
 ############################
 ### CHECK FILE FUNCTIONS ###
 ############################
