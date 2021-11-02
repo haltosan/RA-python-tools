@@ -4,7 +4,7 @@ import csv
 import re
 import predicates as p  # file of predicates for cleaning functions
 #execfile(fName)
-pwd = r'C:\Users\esimmon1\Downloads'
+pwd = r'C:\Users\haltosan\OneDrive\Desktop\nlp'
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 
 YEAR_RANGE = r'[23]'  # range of acceptable values in the 10's digit of the year
@@ -397,9 +397,8 @@ def borderBlocks(i, f, quiet = True):  # helper function for ghost buster; finds
     return False
 
 
-def ghostBuster(fname, quiet = True):  # finds lines that start with a strange letter (b in the middle of the e section); DEPENDANT ON borderBlocks
+def ghostBuster(f, quiet = True):  # finds lines that start with a strange letter (b in the middle of the e section); DEPENDANT ON borderBlocks
     """finds lines that start with strange letters (Benson in the middle of the F section) and prints them out"""
-    f = get(fname)
     blockSize = 20
     outl = []
     for block in range(int(len(f) / blockSize)):
@@ -413,9 +412,9 @@ def ghostBuster(fname, quiet = True):  # finds lines that start with a strange l
                     if borderBlocks(lnIndex, f, quiet):
                         pass
                     else:
-                        outl.append(line)  # anomaly; failed border detection
+                        outl.append([line, trump])  # anomaly; failed border detection
                 else:
-                    outl.append(line)  # anomaly; not near border
+                    outl.append([line, trump])  # anomaly; not near border
     return outl
 
 

@@ -1,7 +1,7 @@
 from file_analysis import *
 
 
-pwd = r'C:\Users\esimmon1\Downloads' #\Harvard\Harvard'
+pwd = r'C:\Users\haltosan\OneDrive\Desktop\nlp\Harvard'
 os.chdir(pwd)
 print(pwd)
 
@@ -15,6 +15,7 @@ NUMERAL_STRICT = r'(?P<num>^X?(|IX|IV|V?I{0,3})$)'
 PROGRAM = r'( \.?(?P<program>[APS]) \.?)(.*$)'
 
 R1 = r'^(?P<name>[A-Z a-z]+, [A-Za-z \-]+(, Jr.)?(,|\.)? )(?P<info>.*)'
+R2 = r'^(?P<name>[A-Z][A-Z a-z]+, [A-Za-z \-]+(, Jr)?,? )(?P<info>.*)'
 
 years = ['21', '22', '23', '24', '25', '26']
 
@@ -22,6 +23,8 @@ years = ['21', '22', '23', '24', '25', '26']
 ###########################################
 ### STILL IN DEVELOPMENT
 ###########################################
+
+firstPass = lambda f: cleanFile(f, lambda txt: p.long(txt) and not p.hasPage(txt), cleanChars, p.printableChar)
 
 def cleanCollect(fname='4.txt'):
     f = get(fname)
