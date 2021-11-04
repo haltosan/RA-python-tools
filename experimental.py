@@ -26,6 +26,8 @@ years = ['21', '22', '23', '24', '25', '26']
 
 firstPass = lambda f: cleanFile(f, lambda txt: p.long(txt) and not p.hasPage(txt), cleanChars, p.printableChar)
 
+numStart = lambda txt: all([not p.number(i) for i in txt[:5]])
+
 def cleanCollect(fname='4.txt'):
     f = get(fname)
     o1 = cleanFile(f, p.space, negatePred=True)
@@ -693,8 +695,13 @@ def badPrince(fname, col = 1):
         elif nl <= MEAN - DEV - DEV:
             badboiz.append([i, names[i]])
     return badboiz
-            
 
+def harvardClean(fname):
+    f = get(fname)
+    o1 = cleanFile(firstPass(f), None, cleanChars, p.addressChar)
+    o2 = cleanFile(o1, None, clean, ['=', '-', '.', '\'', '"'])
+
+    return o2
 
 '''
  o1 = fileStrip(get('21 names.csv'), ',. *-_"')
