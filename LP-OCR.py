@@ -1,3 +1,8 @@
+"""
+Authors: Ethan, Annie, Sarah
+Requires the record_linking environment to work properly (very specific dectron2, pywin32, etc. versions)
+"""
+
 import pytesseract
 import cv2
 import layoutparser as lp
@@ -22,6 +27,7 @@ IMAGE_QUALITY = 300
 # command line flags
 delImages = False
 useCache = False
+imageOnly = False
 
 # all based on getSettings()
 workingDir = ''
@@ -139,11 +145,11 @@ def pdfToImages(imageQuality = IMAGE_QUALITY):
         os.mkdir(imageFolder)
     except:
         print(' Images in', imageFolder)
-    # Image output naming convention: pdfName-pageNum.png
+    # Image output naming convention: pageNum.png
     for pageNum in range(startPage, endPage + 1):
         print('  Imaging page', str(pageNum) + '...')
         page = convert_from_path(pdfPath, imageQuality, first_page = startPage, last_page = endPage, poppler_path = poppler_path, thread_count = PDF_2_IMAGE_THREADS)[0]
-        page.save(imageFolder + '\\' 'page ' + str(pageNum) + '.' + IMAGE_FILE_TYPE)
+        page.save(imageFolder + '\\' + str(pageNum) + '.' + IMAGE_FILE_TYPE)
 
 
 def getImages():
@@ -243,12 +249,14 @@ def addPageLabels(text):
 
 def getSettings(quiet = False):
     """Set all the apropriate global variables needed for later functions. See the global line or comment in main to see everything it modifies"""
-    global workingDir, pdfPath, startPage, endPage, delImages, useCache, imageFolder, outTextPath  # modifies all of these
+    global workingDir, pdfPath, startPage, endPage, delImages, useCache, imageFolder, outTextPath, imageOnly  # modifies all of these
     if quiet:
         if isFlagSet('-d') or isFlagSet('--delImages'):
             delImages = True
         if isFlagSet('-c') or isFlagSet('--cache'):
             useCache = True
+        if isFlagSet('-i') or isFlagSet('--imageOnly'):
+            imageOnly = True
         workingDir = sys.argv[1]
         pdfPath = sys.argv[2]
         startPage = sys.argv[3]
@@ -300,6 +308,7 @@ def main():
         print('  Options: (assume opposite behavior is default)')
         print('\t --delImages | -d \t delete images after running (aka don\'t keep a cache)')
         print('\t --cache     | -c \t use an existing image cache')
+        print('\t --imageOnly | -i \t only create images from pdf, don\'t do ocr')
         print('')
 
     getSettings(quiet)  # side effects: sets workingDir, pdfPath, startPage, endPage, delImages, useCache, imageFolder, outTextPath
@@ -308,6 +317,9 @@ def main():
     if not useCache:  # we aren't using cache, therefore we need to build images
         print('\n\n#Converting PDF to Images#', flush = True)
         pdfToImages()
+    if imageOnly:
+        print('Created Images, exiting now')
+        exit(0)
 
     print('\n\n#Loading Images#', flush = True)
     images = getImages()
