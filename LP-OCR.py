@@ -1,6 +1,8 @@
 """
 Authors: Ethan, Sarah, Annie
 Requires the record_linking environment (specific dectron2, pywin32, etc. versions)
+
+Docs: https://github.com/haltosan/RA-python-tools/wiki/Layout-Parser
 """
 
 import pytesseract
@@ -305,6 +307,39 @@ def getSettings(quiet = False):
     dPrint('-c ' + str(useCache))
     dPrint('-i ' + str(imageOnly))
 
+# FUNCTION TO CHOOSE MODEL/CONFIG
+def chooseModelAndConfig():
+    # print menu
+    print('Choose model and config file:\n')
+    options = 3
+    print('0: enter paths manually\n')
+    print('1: prima (general use)\n')
+    print('2: customPubLayout (training for census)\n')
+    # input choice
+    choice = input('\nChoice: ')
+    while not is_int(choice) or int(choice) > (options - 1) or int(choice) < 0:
+        choice = input('\nInvalid, new choice: ')
+    # set model and config based on choice
+    if choice == 0:
+        config_path = input('\nConfig path: ')
+        assert(os.path.isdir(config_path))
+        model_path = input('\nModel path: ')
+        assert(os.path.isdir(model_path))
+    elif choice == 1:
+        config_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\config.yaml'
+        model_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\model_final.pth'
+    elif choice == 2:
+        config_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\config.yaml'
+        model_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\model_final.pth'
+    else:
+        print('Error: choice not accounted for. Using hard-coded default.')
+        
+    
+
+    #ADD MORE HERE IF YOU WANT
+    #assert(os.path.isdir(workingDir))
+    choice = input('\nChoice: ')
+
 
 ##########
 ## MAIN ##
@@ -321,6 +356,7 @@ def main():
         print('\t --imageOnly | -i \t only create images from pdf, don\'t do ocr')
         print('')
 
+    chooseModelAndConfig()
     getSettings(quiet)  # side effects: sets workingDir, pdfPath, startPage, endPage, delImages, useCache, imageFolder, outTextPath
                         # modifies current directoy
 
