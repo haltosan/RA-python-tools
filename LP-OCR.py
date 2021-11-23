@@ -1,6 +1,6 @@
 """
-Authors: Ethan, Annie, Sarah
-Requires the record_linking environment to work properly (very specific dectron2, pywin32, etc. versions)
+Authors: Ethan, Sarah, Annie
+Requires the record_linking environment (specific dectron2, pywin32, etc. versions)
 """
 
 import pytesseract
@@ -38,8 +38,8 @@ imagePath = ''
 outTextPath = ''
 
 # params for layoutParser model creation
-config_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\config.yaml'
-model_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\model_final.pth'
+config_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\config.yaml'
+model_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\model_final.pth'
 # params for pdf2image
 poppler_path = r'V:\FHSS-JoePriceResearch\papers\current\SAT_yearbooks\poppler-20.12.1\Library\bin'
 startPage, endPage = 0,0
@@ -105,11 +105,17 @@ accepts strings, lists, and lists of lists"""
 
 def numberSTorRD(number):
     """Returns a string with the proper st or rd (1st, 2nd, 3rd, 4th, etc)"""
-    if number == 1:
+    if number == 11:
+        return str(number) + 'th'
+    if number == 12:
+        return str(number) + 'th'
+    if number == 13:
+        return str(number) + 'th'
+    if (number % 10) == 1:
         return str(number) + 'st'
-    if number == 2:
+    if (number % 10) == 2:
         return str(number) + 'nd'
-    if number == 3:
+    if (number % 10) == 3:
         return str(number) + 'rd'
     return str(number) + 'th'
 
@@ -148,7 +154,7 @@ def pdfToImages(imageQuality = IMAGE_QUALITY):
     # Image output naming convention: pageNum.png
     for pageNum in range(startPage, endPage + 1):
         print('  Imaging page', str(pageNum) + '...')
-        page = convert_from_path(pdfPath, imageQuality, first_page = startPage, last_page = endPage, poppler_path = poppler_path, thread_count = PDF_2_IMAGE_THREADS)[0]
+        page = convert_from_path(pdfPath, imageQuality, first_page = pageNum, last_page = pageNum, poppler_path = poppler_path, thread_count = PDF_2_IMAGE_THREADS)[0]
         page.save(imageFolder + '\\' + str(pageNum) + '.' + IMAGE_FILE_TYPE)
 
 
@@ -180,8 +186,8 @@ def getLayouts(images):
     model = lp.Detectron2LayoutModel(config_path = config_path,
                                      model_path = model_path,
                                      extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.75],
-                                     label_map = {1:"TextRegion", 2:"ImageRegion", 3:"TableRegion", 4:"MathsRegion", 5:"SeparatorRegion", 6:"OtherRegion"})
-    textLabel = 'TextRegion'
+                                     label_map = {0:"Column"})
+    textLabel = 'Column'
     layouts = []
     for image in images:
         layout = model.detect(image)
@@ -219,6 +225,7 @@ def ocr(textRegions, images):
         regions = []
         image = images[pageNum]
         for region in textRegions[pageNum]:
+            dPrint('new region')
             segmentImage = (region
                                .pad(left=5, right=5, top=5, bottom=5)
                                .crop_image(image))  # add padding in each image segment can help improve robustness
@@ -229,7 +236,7 @@ def ocr(textRegions, images):
     return texts
 
 
-def delImages():
+def runDelImages():
     """Removes images after running to free up space"""
     os.chdir(imageFolder)
     for file in os.listdir():
@@ -294,6 +301,9 @@ def getSettings(quiet = False):
                 
     imageFolder = pdfPath[:-4] + '-images'  #len('.pdf') == 4
     outTextPath = pdfPath[:-4] + '-transcribed.txt'
+    dPrint('-d ' + str(delImages))
+    dPrint('-c ' + str(useCache))
+    dPrint('-i ' + str(imageOnly))
 
 
 ##########
@@ -301,7 +311,7 @@ def getSettings(quiet = False):
 ##########
 def main():
     quiet = False
-    if len(sys.argv) != 5:  # number of args required
+    if len(sys.argv) >= 5:  # number of args required
         quiet = True
     else:
         print('Command line usage: python', sys.argv[0], '[options] pdfDirectory pdfName startPage endPage')
@@ -325,6 +335,7 @@ def main():
     images = getImages()
 
     print('\n\n#Finding Layouts#', flush = True)
+    print('(expect some random ouput here; this is all from detectron2)\n')
     layouts = getLayouts(images)  # side effect: sets textLabel
 
     print('\n\n#Finding Text Blocks#', flush = True)
@@ -338,7 +349,7 @@ def main():
     save(text, outTextPath)
 
     if delImages:
-        delImages()
+        runDelImages()
 
 
 
