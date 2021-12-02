@@ -7,4 +7,3 @@ Some tools I have written to help automate tasks during work as a research assis
 
 Visit the [wiki](https://github.com/haltosan/RA-python-tools/wiki) for syntax and usage.
 
-I also have a help video [here](https://youtu.be/f5S-SsI30pw), but the wiki is far more extensive. Reach out if there are any questions.
