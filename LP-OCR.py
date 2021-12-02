@@ -5,6 +5,7 @@ Requires the record_linking environment (specific dectron2, pywin32, etc. versio
 Docs: https://github.com/haltosan/RA-python-tools/wiki/Layout-Parser
 """
 
+print('Importing', flush = True, end='...')
 import pytesseract
 import cv2
 import layoutparser as lp
@@ -12,6 +13,7 @@ import shutil
 import os
 import sys
 import random
+from tqdm import tqdm
 from re import findall
 try:
  from PIL import Image
@@ -19,12 +21,18 @@ except ImportError:
  import Image
 
 from pdf2image import convert_from_path
+print(' done', flush=True)
 
 # misc settins; no major need to change for the most part
 DEBUG = True
 PDF_2_IMAGE_THREADS = 1
 IMAGE_FILE_TYPE = 'PNG'  # make sure this is uppercase
 IMAGE_QUALITY = 300
+# paths to pretrained models
+PRIMA_CONFIG = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\config.yaml'
+PRIMA_MODEL = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\model_final.pth'
+LSR_CONFIG = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\config.yaml'
+LSR_MODEL = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\model_final.pth'
 
 # command line flags
 delImages = False
@@ -40,8 +48,8 @@ imagePath = ''
 outTextPath = ''
 
 # params for layoutParser model creation
-config_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\config.yaml'
-model_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\model_final.pth'
+config_path = PRIMA_CONFIG
+model_path = PRIMA_MODEL
 # params for pdf2image
 poppler_path = r'V:\FHSS-JoePriceResearch\papers\current\SAT_yearbooks\poppler-20.12.1\Library\bin'
 startPage, endPage = 0,0
@@ -122,13 +130,14 @@ def numberSTorRD(number):
     return str(number) + 'th'
 
 
-def fileSortScore(string):
+def fileSortScore(name):
     """Gives a specific score to each file name to help with numerical ordering"""
-    numbers = [int(i) for i in findall('[0-9]+', string)[:4]]  # only keep track of at most 4 numbers within the string for scoring
+    numbers = [int(i) for i in findall('[0-9]+', name)[:4]]  # only keep track of at most 4 numbers within the string for scoring
     score = 0
     for i in range(len(numbers)):
-            score += numbers[i] * (100**(len(numbers) - i))  # some value that should be large enough to prevent overlap between different numbers
+            score += numbers[i] * (100**(len(numbers) - i))  # places numbers in different digits of a score (example: 1,2 > 1,1 ==> 100200 > 100100)
     return score
+
 
 def isFlagSet(flag):
     """Checks weather a specific argument appears within sys.argv and removes it"""
@@ -139,6 +148,13 @@ def isFlagSet(flag):
         return False
     del sys.argv[index]
     return True
+
+
+def is_int(numberStr):
+    try:
+        return int(numberStr) and True # will always be true, but it needs to evaluate int(numberStr) first
+    except:
+        return False
 
 
 ####################
@@ -164,14 +180,14 @@ def getImages():
     """Load images into memory (from imageFolder) that pdf2image created"""
     os.chdir(imageFolder)
 
-    nameList = [file for file in os.listdir() if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]
+    nameList = [file for file in os.listdir() if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]  # reads the last few characters to see if the file extention matches
     images = []
     nameList.sort(key = fileSortScore)
     dPrint(nameList)
     for fileName in nameList:
         image = cv2.imread(fileName)
         try:
-            image = image[..., ::-1]  # gets image into correct format; also a good check to ensure image is correctly read in
+            image = image[..., ::-1]  # gets image into correct format; this line will fail if the image failed to load in properly
         except:
             raise Exception('Image is incorrect. Check the path provided: ' + imagePath)
         images.append(image)
@@ -182,8 +198,7 @@ def getImages():
 
 def getLayouts(images):
     """Uses the layout parser tool to select select all regions from an image"""
-
-    global textLabel  # requires this from the global scope but doesn't modify it
+    global textLabel
 
     model = lp.Detectron2LayoutModel(config_path = config_path,
                                      model_path = model_path,
@@ -194,6 +209,7 @@ def getLayouts(images):
     for image in images:
         layout = model.detect(image)
         if len(layout) < 1:
+            print(image)
             raise Exception('No regions found in the image')
         layouts.append(layout)
     return layouts
@@ -210,7 +226,7 @@ def getTextRegions(layouts):
         # Remove text regions that reside within regions of other types
         pageTextRegions = lp.Layout([region for region in pageTextRegions if not any(region.is_in(otherRegion) for otherRegion in pageOtherRegions)])
 
-        # Remove text regions that overlap with other text regions
+        # Remove text regions that are subsets of larger text regions
         # The smaller regions are removed to avoid redundant OCR
         pageTextRegions = lp.Layout([region for region in pageTextRegions if not any(region.is_in(otherRegion) and area(region) < area(otherRegion) for otherRegion in pageTextRegions)])
         textRegions.append(pageTextRegions)
@@ -226,8 +242,7 @@ def ocr(textRegions, images):
         print(' ' + numberSTorRD(pageNum + 1), 'Page...')  # pageNum+1 because index starts at 0
         regions = []
         image = images[pageNum]
-        for region in textRegions[pageNum]:
-            dPrint('new region')
+        for region in tqdm(textRegions[pageNum], ascii = True, leave = False):  # tqdm is a loading bar
             segmentImage = (region
                                .pad(left=5, right=5, top=5, bottom=5)
                                .crop_image(image))  # add padding in each image segment can help improve robustness
@@ -258,7 +273,7 @@ def addPageLabels(text):
 
 def getSettings(quiet = False):
     """Set all the apropriate global variables needed for later functions. See the global line or comment in main to see everything it modifies"""
-    global workingDir, pdfPath, startPage, endPage, delImages, useCache, imageFolder, outTextPath, imageOnly  # modifies all of these
+    global workingDir, pdfPath, startPage, endPage, delImages, useCache, imageFolder, outTextPath, imageOnly, config_path, model_path  # sets all of these
     if quiet:
         if isFlagSet('-d') or isFlagSet('--delImages'):
             delImages = True
@@ -270,13 +285,26 @@ def getSettings(quiet = False):
         pdfPath = sys.argv[2]
         startPage = sys.argv[3]
         endPage = sys.argv[4]
+        modelSelector = sys.argv[5]
         assert(os.path.isdir(workingDir))
         os.chdir(workingDir)
         assert(os.path.isfile(pdfPath))
         startPage = int(startPage)
         endPage = int(endPage)
+        if modelSelector == '1' or modelSelector == 'prima':
+            config_path = PRIMA_CONFIG
+            model_path = PRIMA_MODEL
+        elif modelSelector == '2' or modelSelector == 'lsr':
+            config_path = LSR_CONFIG
+            model_path = LSR_MODEL
+        else:
+            config_path = os.path.join(modelSelector, 'config.yaml')
+            model_path = os.path.join(modelSelector, 'model_final.pth')
+        assert(os.path.isfile(config_path))
+        assert(os.path.isfile(model_path))
         
     else:
+        chooseModelAndConfig()  # side effects: sets config_path and model_path
         workingDir = input('Folder Name\n> ')
         while not os.path.isdir(workingDir):
             workingDir = input('Please enter a valid folder name\n> ')
@@ -306,57 +334,60 @@ def getSettings(quiet = False):
     dPrint('-d ' + str(delImages))
     dPrint('-c ' + str(useCache))
     dPrint('-i ' + str(imageOnly))
+    dPrint(model_path)
 
-# FUNCTION TO CHOOSE MODEL/CONFIG
+
 def chooseModelAndConfig():
+    """function to choose model/config"""
+    global config_path, model_path
     # print menu
     print('Choose model and config file:\n')
     options = 3
     print('0: enter paths manually\n')
     print('1: prima (general use)\n')
-    print('2: customPubLayout (training for census)\n')
+    print('2: customPubLayout (training for land records)\n')
     # input choice
-    choice = input('\nChoice: ')
+    choice = input('Choice:\n> ')
     while not is_int(choice) or int(choice) > (options - 1) or int(choice) < 0:
-        choice = input('\nInvalid, new choice: ')
+        choice = input('Invalid, new choice:\n> ')
     # set model and config based on choice
+    choice = int(choice)
     if choice == 0:
-        config_path = input('\nConfig path: ')
+        config_path = input('Config path:\n> ')
         assert(os.path.isdir(config_path))
-        model_path = input('\nModel path: ')
+        model_path = input('\nModel path:\n> ')
         assert(os.path.isdir(model_path))
     elif choice == 1:
-        config_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\config.yaml'
-        model_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\model_final.pth'
+        config_path = PRIMA_CONFIG
+        model_path = PRIMA_MODEL
     elif choice == 2:
-        config_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\config.yaml'
-        model_path = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\model_final.pth'
+        config_path = LSR_CONFIG
+        model_path = LSR_MODEL
     else:
-        print('Error: choice not accounted for. Using hard-coded default.')
-        
-    
-
-    #ADD MORE HERE IF YOU WANT
-    #assert(os.path.isdir(workingDir))
-    choice = input('\nChoice: ')
+        print('Error: choice not accounted for. Using hard-coded default.', config_path, model_path)
 
 
 ##########
 ## MAIN ##
 ##########
+
+
 def main():
     quiet = False
-    if len(sys.argv) >= 5:  # number of args required
+    if len(sys.argv) >= 6:  # number of args required
         quiet = True
     else:
-        print('Command line usage: python', sys.argv[0], '[options] pdfDirectory pdfName startPage endPage')
+        print('Command line usage: python', sys.argv[0], '[options] pdfDirectory pdfName startPage endPage model')
         print('  Options: (assume opposite behavior is default)')
         print('\t --delImages | -d \t delete images after running (aka don\'t keep a cache)')
         print('\t --cache     | -c \t use an existing image cache')
         print('\t --imageOnly | -i \t only create images from pdf, don\'t do ocr')
-        print('')
+        print('\n acceptable values for model:')
+        print('\t [directory containing model_final.pth and config.yaml]')
+        print('\t 1, prima \t prima layout, good for general use')
+        print('\t 2, lsr \t trained pubLayout for land patent records')
+        print('\n')
 
-    chooseModelAndConfig()
     getSettings(quiet)  # side effects: sets workingDir, pdfPath, startPage, endPage, delImages, useCache, imageFolder, outTextPath
                         # modifies current directoy
 
@@ -386,7 +417,6 @@ def main():
 
     if delImages:
         runDelImages()
-
 
 
 if __name__ == '__main__':
