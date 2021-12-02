@@ -23,11 +23,9 @@ except ImportError:
 from pdf2image import convert_from_path
 print(' done', flush=True)
 
-# misc settins; no major need to change for the most part
 DEBUG = True
-PDF_2_IMAGE_THREADS = 1
 IMAGE_FILE_TYPE = 'PNG'  # make sure this is uppercase
-IMAGE_QUALITY = 300
+
 # paths to pretrained models
 PRIMA_CONFIG = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\config.yaml'
 PRIMA_MODEL = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\model_final.pth'
@@ -39,7 +37,7 @@ delImages = False
 useCache = False
 imageOnly = False
 
-# all based on getSettings()
+# all set in getSettings()
 workingDir = ''
 imageFolder = ''
 textLabel = ''
@@ -51,8 +49,10 @@ outTextPath = ''
 config_path = PRIMA_CONFIG
 model_path = PRIMA_MODEL
 # params for pdf2image
+PDF_2_IMAGE_THREADS = 1
+IMAGE_QUALITY = 300
 poppler_path = r'V:\FHSS-JoePriceResearch\papers\current\SAT_yearbooks\poppler-20.12.1\Library\bin'
-startPage, endPage = 0,0
+startPage, endPage = 0, 0
 # tesseract path
 pytesseract.pytesseract.tesseract_cmd = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\Tesseract-OCR\tesseract.exe'
 
@@ -63,18 +63,18 @@ pytesseract.pytesseract.tesseract_cmd = r'V:\FHSS-JoePriceResearch\RA_work_folde
 
 
 def dPrint(txt):
-    """Print debugging info"""
+    """Print debugging info. Used for more verbose messages"""
     if DEBUG:
         print('*' + str(txt) + '*')
 
 
 def csvText(text):
-    """turns text into proper csv string"""
+    """Turns text into proper csv string"""
     return '"' + text + '"' if (',' in text) else text
 
 
 def csvJoin(texts):
-    """converts list to csv string"""
+    """Converts list to csv string"""
     outs = ""
     for i in texts:
         outs += str(csvText(i)) + ','
@@ -82,7 +82,7 @@ def csvJoin(texts):
 
 
 def save(text, out, csvStyle=False):
-    """writes text to out (file name), can also write it in a csv format\n
+    """Writes text to out (file name), can also write it in a csv format\n
 accepts strings, lists, and lists of lists"""    
     x = open(out, 'w', encoding='utf-8')
     if type(text) is str:
@@ -113,7 +113,7 @@ accepts strings, lists, and lists of lists"""
     x.close()
 
 
-def numberSTorRD(number):
+def numberTH(number):
     """Returns a string with the proper st or rd (1st, 2nd, 3rd, 4th, etc)"""
     if number == 11:
         return str(number) + 'th'
@@ -150,7 +150,8 @@ def isFlagSet(flag):
     return True
 
 
-def is_int(numberStr):
+def isInt(numberStr):
+    """Test whether a string is an int"""
     try:
         return int(numberStr) and True # will always be true, but it needs to evaluate int(numberStr) first
     except:
@@ -162,9 +163,8 @@ def is_int(numberStr):
 ####################
 
 
-def pdfToImages(imageQuality = IMAGE_QUALITY):
+def pdfToImages():
     """Convert each page of a pdf to an image and save to imageFolder"""
-    global pdfPath, startPage, endPage, poppler_path, imageFolder  # requires these from the global scope but doesn't modify them
     try:
         os.mkdir(imageFolder)
     except:
@@ -172,7 +172,7 @@ def pdfToImages(imageQuality = IMAGE_QUALITY):
     # Image output naming convention: pageNum.png
     for pageNum in range(startPage, endPage + 1):
         print('  Imaging page', str(pageNum) + '...')
-        page = convert_from_path(pdfPath, imageQuality, first_page = pageNum, last_page = pageNum, poppler_path = poppler_path, thread_count = PDF_2_IMAGE_THREADS)[0]
+        page = convert_from_path(pdfPath, IMAGE_QUALITY, first_page = pageNum, last_page = pageNum, poppler_path = poppler_path, thread_count = PDF_2_IMAGE_THREADS)[0]
         page.save(imageFolder + '\\' + str(pageNum) + '.' + IMAGE_FILE_TYPE)
 
 
@@ -204,7 +204,7 @@ def getLayouts(images):
                                      model_path = model_path,
                                      extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.75],
                                      label_map = {0:"Column"})
-    textLabel = 'Column'
+    textLabel = 'Column'  # set to whatever region is of interest; all other regions will be removed in getTextRegions
     layouts = []
     for image in images:
         layout = model.detect(image)
@@ -218,7 +218,7 @@ def getLayouts(images):
 def getTextRegions(layouts):
     """Remove all regions that aren't text regions"""
     textRegions = []
-    area = lambda regionObj : regionObj.block.height * regionObj.block.width
+    area = lambda regionObj : regionObj.block.height * regionObj.block.width  # area function
     
     for layout in layouts:
         pageTextRegions = lp.Layout([b for b in layout if b.type==textLabel])  # grab everything that is a text region
@@ -235,17 +235,17 @@ def getTextRegions(layouts):
 
 
 def ocr(textRegions, images):
-    """Run optical character recognition on the image to extract text from it"""
+    """Run optical character recognition on the images to extract text from it"""
     ocrAgent = lp.TesseractAgent(languages='eng')
     texts = []
     for pageNum in range(len(textRegions)):
-        print(' ' + numberSTorRD(pageNum + 1), 'Page...')  # pageNum+1 because index starts at 0
+        print(' ' + numberTH(pageNum + 1), 'Page...')  # pageNum+1 because indexing starts at 0
         regions = []
         image = images[pageNum]
-        for region in tqdm(textRegions[pageNum], ascii = True, leave = False):  # tqdm is a loading bar
+        for region in tqdm(textRegions[pageNum], ascii = True, leave = False):  # tqdm is a loading bar; this section tends to take the longest
             segmentImage = (region
-                               .pad(left=5, right=5, top=5, bottom=5)
-                               .crop_image(image))  # add padding in each image segment can help improve robustness
+                               .pad(left=5, right=5, top=5, bottom=5)  # add padding in each image segment can help improve robustness
+                               .crop_image(image))
             regionText = ocrAgent.detect(segmentImage)
             region.set(text=regionText, inplace=True)
             regions.append(region)
@@ -286,8 +286,7 @@ def getSettings(quiet = False):
         startPage = sys.argv[3]
         endPage = sys.argv[4]
         modelSelector = sys.argv[5]
-        assert(os.path.isdir(workingDir))
-        os.chdir(workingDir)
+        os.chdir(workingDir)  # serves as validation; also moves execution into correct location
         assert(os.path.isfile(pdfPath))
         startPage = int(startPage)
         endPage = int(endPage)
@@ -329,8 +328,8 @@ def getSettings(quiet = False):
             except:
                 endPage = input('Please enter a valid start page\n> ')
                 
-    imageFolder = pdfPath[:-4] + '-images'  #len('.pdf') == 4
-    outTextPath = pdfPath[:-4] + '-transcribed.txt'
+    imageFolder = pdfPath[:-len('.pdf')] + '-images'
+    outTextPath = pdfPath[:-len('.pdf')] + '-transcribed.txt'
     dPrint('-d ' + str(delImages))
     dPrint('-c ' + str(useCache))
     dPrint('-i ' + str(imageOnly))
@@ -338,17 +337,17 @@ def getSettings(quiet = False):
 
 
 def chooseModelAndConfig():
-    """function to choose model/config"""
+    """Function to choose model/config"""
     global config_path, model_path
     # print menu
     print('Choose model and config file:\n')
     options = 3
-    print('0: enter paths manually\n')
-    print('1: prima (general use)\n')
-    print('2: customPubLayout (training for land records)\n')
+    print('0: enter paths manually')
+    print('1: prima (general use)')
+    print('2: customPubLayout (training for land records)')
     # input choice
     choice = input('Choice:\n> ')
-    while not is_int(choice) or int(choice) > (options - 1) or int(choice) < 0:
+    while not isInt(choice) or int(choice) > (options - 1) or int(choice) < 0:
         choice = input('Invalid, new choice:\n> ')
     # set model and config based on choice
     choice = int(choice)
