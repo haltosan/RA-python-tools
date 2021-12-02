@@ -1,29 +1,9 @@
 # RA-python-tools
-Tools written in python for file analysis and name extraction.
-The main file is 'file analysis.py' which has all the tools I use.
-'predicates.py' has predicate functions I wrote to help identify data that is either useful or useless.
-Each file has it's own documentation in a block comment, but feel free to yell at me if something doesn't make sense.
 
+Some tools I have written to help automate tasks during work as a research assistant. The two main projects in here at the moment are file_analysis.py and LP-OCR.py.
 
-
-### Usage
-
-Download the latest release and extract the zip. Inside are a few python files. The main file is file_analysis.py (it has all the functions defined). The other files are either exteneded features (experimental) or supporting files (predicates). My prefered usage is opening file_analysis.py in IDLE and running it. There isn't any output (aside from working directory), but it has all the functions loaded and ready to use from the shell.
-
-```
->>> raw = get("example.txt")
->>> raw
-['this', 'is', 'a', 'bucket']
-```
-
-Another way to use this is to import file_analysis in another project and use the functions.
-```
-import file_analysis as f
-import predicates as p
-
-rawFile = f.get("example.txt")
-print(cleanFile(rawFile, p.long))
-```
+* file analysis is a suite of tools to help with natural language processing and preparing text files for data extraction
+* layout parser (lp-ocr) is an optical character recognition project that parses the layout of documents and uses the layout information to do more reliable text extraction
 
 Visit the [wiki](https://github.com/haltosan/RA-python-tools/wiki) for syntax and usage.
 
