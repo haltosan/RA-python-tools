@@ -508,7 +508,7 @@ def obitMain():
     
     workingDir = sys.argv[1]  # no need to use workingDir from global scope because it doesn't get used outside this function
     modelType = sys.argv[2]
-    setModel(modelType)  # both setModel and chdir serve as validation for the arguments passed
+    setModel(modelType)  # both setModel() and chdir() serve as validators for the arguments passed
     os.chdir(workingDir)
 
     print('#Locating files#')
@@ -531,19 +531,6 @@ def obitMain():
     batchSize = 0
     batchNames = []
     nonce = 0  # number used only once (nonce); used to have unique file names
-
-    # start random debugging
-    print('Checking number of images found')
-    count = 0
-
-    for i in range(len(dirList)):
-        curDir = dirList[i]
-        nameList = fileNames[i]
-        for name in nameList:
-            count += 1
-            print(count,", ", name)
-
-    # end random debugging
 
     print('#Starting main loop#')
     for i in range(len(dirList)):
