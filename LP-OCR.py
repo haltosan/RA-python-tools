@@ -9,11 +9,13 @@ print('Importing', flush = True, end='...')
 import pytesseract
 import cv2
 import layoutparser as lp
-import shutil
 import os
 import sys
-import random
+from time import sleep
 from tqdm import tqdm
+import logging
+from math import ceil
+import gc  # garbage collection
 from re import findall
 try:
  from PIL import Image
@@ -21,33 +23,43 @@ except ImportError:
  import Image
 
 from pdf2image import convert_from_path
+
+# set up logging in import phase
+logging.basicConfig(filename='layout parser.log', format='%(levelname)s - %(message)s')
+
 print(' done', flush=True)
 
 DEBUG = True
-IMAGE_FILE_TYPE = 'PNG'  # make sure this is uppercase
+IMAGE_FILE_TYPE = 'JPG'  # make sure this is uppercase
 
 # paths to pretrained models
 PRIMA_CONFIG = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\config.yaml'
 PRIMA_MODEL = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\primaLayout\model_final.pth'
+PRIMA_LABEL_MAP ={1:"TextRegion", 2:"ImageRegion", 3:"TableRegion", 4:"MathsRegion", 5:"SeparatorRegion", 6:"OtherRegion"}
+PRIMA_TEXT_LABEL = 'TextRegion'
 LSR_CONFIG = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\config.yaml'
 LSR_MODEL = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\model_final.pth'
+LSR_LABEL_MAP = {0:"Column"}
+LSR_TEXT_LABEL = 'Column'
 
 # command line flags
 delImages = False
 useCache = False
 imageOnly = False
+obit = False
 
 # all set in getSettings()
-workingDir = ''
-imageFolder = ''
-textLabel = ''
-pdfPath = ''
-imagePath = ''
-outTextPath = ''
+workingDir = 'C:\\'
+textLabel = PRIMA_TEXT_LABEL
+pdfPath = 'default.PDF'
+imagePath = '1.' + IMAGE_FILE_TYPE
+outTextPath = 'output.txt'
 
 # params for layoutParser model creation
 config_path = PRIMA_CONFIG
 model_path = PRIMA_MODEL
+label_map = PRIMA_LABEL_MAP
+imageFolder = PRIMA_TEXT_LABEL
 # params for pdf2image
 PDF_2_IMAGE_THREADS = 1
 IMAGE_QUALITY = 300
@@ -133,9 +145,9 @@ def numberTH(number):
 def fileSortScore(name):
     """Gives a specific score to each file name to help with numerical ordering"""
     numbers = [int(i) for i in findall('[0-9]+', name)[:4]]  # only keep track of at most 4 numbers within the string for scoring
-    score = 0
+    score = []
     for i in range(len(numbers)):
-            score += numbers[i] * (100**(len(numbers) - i))  # places numbers in different digits of a score (example: 1,2 > 1,1 ==> 100200 > 100100)
+            score.append(numbers[i])
     return score
 
 
@@ -153,7 +165,7 @@ def isFlagSet(flag):
 def isInt(numberStr):
     """Test whether a string is an int"""
     try:
-        return int(numberStr) and True # will always be true, but it needs to evaluate int(numberStr) first
+        return int(numberStr) or True # will always be true, but it needs to evaluate int(numberStr) first
     except:
         return False
 
@@ -178,7 +190,8 @@ def pdfToImages():
 
 def getImages():
     """Load images into memory (from imageFolder) that pdf2image created"""
-    os.chdir(imageFolder)
+    if not obit:  # just read images from the current dir if obit is set
+        os.chdir(imageFolder)
 
     nameList = [file for file in os.listdir() if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]  # reads the last few characters to see if the file extention matches
     images = []
@@ -191,20 +204,18 @@ def getImages():
         except:
             raise Exception('Image is incorrect. Check the path provided: ' + imagePath)
         images.append(image)
-
-    os.chdir('..')  # move back into working directory
+    if not obit:
+        os.chdir('..')  # move back into working directory
     return images
 
 
 def getLayouts(images):
     """Uses the layout parser tool to select select all regions from an image"""
-    global textLabel
 
     model = lp.Detectron2LayoutModel(config_path = config_path,
                                      model_path = model_path,
                                      extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.75],
-                                     label_map = {0:"Column"})
-    textLabel = 'Column'  # set to whatever region is of interest; all other regions will be removed in getTextRegions
+                                     label_map = label_map)
     layouts = []
     for image in images:
         layout = model.detect(image)
@@ -222,15 +233,29 @@ def getTextRegions(layouts):
     
     for layout in layouts:
         pageTextRegions = lp.Layout([b for b in layout if b.type==textLabel])  # grab everything that is a text region
-        pageOtherRegions = lp.Layout([b for b in layout if b.type!=textLabel])
-        # Remove text regions that reside within regions of other types
-        pageTextRegions = lp.Layout([region for region in pageTextRegions if not any(region.is_in(otherRegion) for otherRegion in pageOtherRegions)])
-
+        
         # Remove text regions that are subsets of larger text regions
         # The smaller regions are removed to avoid redundant OCR
         pageTextRegions = lp.Layout([region for region in pageTextRegions if not any(region.is_in(otherRegion) and area(region) < area(otherRegion) for otherRegion in pageTextRegions)])
         textRegions.append(pageTextRegions)
-        
+
+    # increases the region size to ensure that text isn't being cut off
+    regionPadding = 70  # some arbitrary value that seems to work pretty well
+    for page in textRegions:
+        for textRegion in page:
+            rect = textRegion.block
+            rect.x_1 -= regionPadding  # left is negative
+            rect.y_1 -= regionPadding  # up is negative
+            rect.x_2 += regionPadding
+            rect.y_2 += regionPadding
+
+    # sorts the regions based on their centers; orders the regions from left to right
+    # the center function is as follows: the highest weight is the x value, next is the y value
+    #   the x value is divided and rounded up to give discrete intervals; this is to prevent something that is slightly more left to win over something that is higher
+    center = lambda textBlock : [ceil((textBlock.block.y_1 + textBlock.block.y_2)/600), (textBlock.block.x_1 + textBlock.block.x_2)/2]
+    for page in textRegions:
+        page._blocks.sort(key = center)  # the lower the number, the further left and up it is
+    
     return textRegions
 
 
@@ -262,18 +287,34 @@ def runDelImages():
     os.rmdir(imageFolder)
 
 
-def addPageLabels(text):
+def addPageLabels(text, batchNames):
     """Adds labels to the final output to indicate when pages and regions change"""
     for page in range(len(text)):
         for section in range(len(text[page])):
-            text[page][section] += '\n-SECTION END-\n'
+            text[page][section] += '\n-section end-\n'
+        text[page].append('\n-image:' + batchNames[page] + '\n')
         text[page].append('\n--- PAGE END ---\n')
     return text
 
 
+def setModel(model):
+    global config_path, model_path, label_map, textLabel
+    if model == 'prima':
+        config_path = PRIMA_CONFIG
+        model_path = PRIMA_MODEL
+        label_map = PRIMA_LABEL_MAP
+        textLabel = PRIMA_TEXT_LABEL
+    elif model == 'lsr':
+        config_path = LSR_MODEL
+        model_path = LSR_MODEL
+        label_map = LSR_LABEL_MAP
+        textLabel = LSR_TEXT_LABEL
+    else:
+        raise ValueError('Unknown model type')
+
 def getSettings(quiet = False):
     """Set all the apropriate global variables needed for later functions. See the global line or comment in main to see everything it modifies"""
-    global workingDir, pdfPath, startPage, endPage, delImages, useCache, imageFolder, outTextPath, imageOnly, config_path, model_path  # sets all of these
+    global workingDir, pdfPath, startPage, endPage, delImages, useCache, obit, imageFolder, outTextPath, imageOnly, config_path, model_path, label_map, textLabel  # sets all of these
     if quiet:
         if isFlagSet('-d') or isFlagSet('--delImages'):
             delImages = True
@@ -281,21 +322,30 @@ def getSettings(quiet = False):
             useCache = True
         if isFlagSet('-i') or isFlagSet('--imageOnly'):
             imageOnly = True
+        if isFlagSet('-o'):
+            obit = True
+            workingDir = sys.argv[1]
+            modelSelector = sys.argv[2]
+            os.chdir(workingDir)
+            setModel(modelSelector)
+            return None  # we only need to set these args for obits
+        
         workingDir = sys.argv[1]
         pdfPath = sys.argv[2]
         startPage = sys.argv[3]
         endPage = sys.argv[4]
         modelSelector = sys.argv[5]
         os.chdir(workingDir)  # serves as validation; also moves execution into correct location
-        assert(os.path.isfile(pdfPath))
+        if useCache:
+            pass
+        else:
+            assert(os.path.isfile(pdfPath))
         startPage = int(startPage)
         endPage = int(endPage)
-        if modelSelector == '1' or modelSelector == 'prima':
-            config_path = PRIMA_CONFIG
-            model_path = PRIMA_MODEL
-        elif modelSelector == '2' or modelSelector == 'lsr':
-            config_path = LSR_CONFIG
-            model_path = LSR_MODEL
+        if modelSelector == 'prima':
+            setModel('prima')  # side effects: sets all layout parser variables
+        elif modelSelector == 'lsr':
+            setModel('lsr')
         else:
             config_path = os.path.join(modelSelector, 'config.yaml')
             model_path = os.path.join(modelSelector, 'model_final.pth')
@@ -353,15 +403,13 @@ def chooseModelAndConfig():
     choice = int(choice)
     if choice == 0:
         config_path = input('Config path:\n> ')
-        assert(os.path.isdir(config_path))
+        assert(os.path.isfile(config_path))
         model_path = input('\nModel path:\n> ')
-        assert(os.path.isdir(model_path))
+        assert(os.path.isfile(model_path))
     elif choice == 1:
-        config_path = PRIMA_CONFIG
-        model_path = PRIMA_MODEL
+        setModel('prima')
     elif choice == 2:
-        config_path = LSR_CONFIG
-        model_path = LSR_MODEL
+        setModel('lsr')
     else:
         print('Error: choice not accounted for. Using hard-coded default.', config_path, model_path)
 
@@ -373,7 +421,7 @@ def chooseModelAndConfig():
 
 def main():
     quiet = False
-    if len(sys.argv) >= 6:  # number of args required
+    if len(sys.argv) >= 2:  # number of args required
         quiet = True
     else:
         print('Command line usage: python', sys.argv[0], '[options] pdfDirectory pdfName startPage endPage model')
@@ -383,14 +431,14 @@ def main():
         print('\t --imageOnly | -i \t only create images from pdf, don\'t do ocr')
         print('\n acceptable values for model:')
         print('\t [directory containing model_final.pth and config.yaml]')
-        print('\t 1, prima \t prima layout, good for general use')
-        print('\t 2, lsr \t trained pubLayout for land patent records')
+        print('\t prima \t prima layout, good for general use')
+        print('\t lsr \t trained pubLayout for land patent records')
         print('\n')
 
     getSettings(quiet)  # side effects: sets workingDir, pdfPath, startPage, endPage, delImages, useCache, imageFolder, outTextPath
                         # modifies current directoy
 
-    if not useCache:  # we aren't using cache, therefore we need to build images
+    if not useCache and not obit:  # we aren't using cache, therefore we need to build images
         print('\n\n#Converting PDF to Images#', flush = True)
         pdfToImages()
     if imageOnly:
@@ -417,9 +465,151 @@ def main():
     if delImages:
         runDelImages()
 
+def obitFinishBatch(images, model, ocrAgent, nonce, batchNames):
+    '''this does layout detection and ocr on an image batch with a preloaded model and ocrAgent. saves to <nonce>-transcribed.txt'''
+    layouts = []
+    # modified getLayouts to work with preloaded model instead of loading each time
+
+    for image in images:
+        layout = model.detect(image)
+        if len(layout) < 1:
+            print(image)
+            raise Exception('No regions found in the image')
+        layouts.append(layout)
+    gc.collect()
+    # end modified getLayouts #
+
+    textRegions = getTextRegions(layouts)
+
+    # modified ocr to work with preloaded agent #
+    texts = []
+    print('OCR')
+    for pageNum in range(len(textRegions)):
+        print(pageNum)
+        regions = []
+        image = images[pageNum]
+        for region in textRegions[pageNum]:
+            segmentImage = (region
+                               .pad(left=5, right=5, top=5, bottom=5)  # add padding in each image segment can help improve robustness
+                               .crop_image(image))
+            regionText = ocrAgent.detect(segmentImage)
+            region.set(text=regionText, inplace=True)
+            regions.append(region)
+        texts.append(lp.Layout(regions).get_texts())
+    # end modified ocr #
+    
+    gc.collect()
+    text = addPageLabels(texts, batchNames)
+    save(text, str(nonce) + '-transcribed.txt')
+    
+
+def obitMain():
+    MAX_BATCH_SIZE = 50  # reaches out of memory point at just above 1230 files
+    
+    workingDir = sys.argv[1]  # no need to use workingDir from global scope because it doesn't get used outside this function
+    modelType = sys.argv[2]
+    setModel(modelType)  # both setModel and chdir serve as validation for the arguments passed
+    os.chdir(workingDir)
+
+    print('#Locating files#')
+    dirList = [x[0] for x in os.walk(workingDir)]  # finds all subfolders within workingDir
+    fileNames = []  # a 2d list for files; fileNames = [dir1, dir2, dir3, ...] where dirX = [file1, file2, file3, ...]
+    for directory in dirList:
+        nameList = [file for file in os.listdir(directory) if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]  # filters all files that match the target file type
+        fileNames.append(nameList)
+
+    dPrint('files found: ' + str(sum([len(i) for i in fileNames])))  # sums the number of files in each dir
+    logging.debug(str(sum([len(i) for i in fileNames])) + ' files')
+    print('#Loading model#')
+    model = lp.Detectron2LayoutModel(config_path = config_path,
+                                     model_path = model_path,
+                                     extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.75],
+                                     label_map = label_map)
+    ocrAgent = lp.TesseractAgent(languages='eng')
+
+    images = []
+    batchSize = 0
+    batchNames = []
+    nonce = 0  # number used only once (nonce); used to have unique file names
+
+    # start random debugging
+    print('Checking number of images found')
+    count = 0
+
+    for i in range(len(dirList)):
+        curDir = dirList[i]
+        nameList = fileNames[i]
+        for name in nameList:
+            count += 1
+            print(count,", ", name)
+
+    # end random debugging
+
+    print('#Starting main loop#')
+    for i in range(len(dirList)):
+        curDir = dirList[i]
+        nameList = fileNames[i]
+        print(curDir)
+        logging.debug(curDir)
+        for name in nameList:
+            batchNames.append(name)
+            batchSize += 1
+            image = cv2.imread(os.path.join(curDir, name))
+            try:
+                image = image[..., ::-1]
+            except:  # this try/catch section is for when the remote drives get disconnected; it allows a small pause to reconnect
+                sleep(5)
+                image = cv2.imread(os.path.join(curDir, name))
+                logging.warning('Image failed: ' + str(os.path.join(curDir, name) +' '+ str(image)))
+                try:
+                    image = image[..., ::-1]
+                except:
+                    logging.warning('Image failed again: ' + str(os.path.join(curDir, name) +' '+ str(image)))
+                    sleep(5)
+                    image = cv2.imread(os.path.join(curDir, name))
+                    try:
+                        image = image[..., ::-1]
+                    except:
+                        logging.critical('Image completely failed: ' + str(os.path.join(curDir, name) +' '+ str(image)))
+                        raise Exception('The image failed to load: ' + str(os.path.join(curDir, name)))
+            images.append(image)
+            if batchSize >= MAX_BATCH_SIZE:
+                try:
+                    obitFinishBatch(images, model, ocrAgent, nonce, batchNames)
+                except:  # same issue as image reading try catch section; the technical issue is that the GPO updates every few hours (guessing around 2-3) which forces the workstation to disconnect before realizing that it has permissions to access the remote drives
+                    logging.debug(os.path.join(curDir, name), ' file, batch #' + str(nonce) + ' failed. Retrying...')
+                    sleep(5)
+                    try:
+                        obitFinishBatch(images, model, ocrAgent, nonce)
+                    except:
+                            logging.debug(os.path.join(curDir, name), ' file, batch #' + str(nonce) + ' failed again. Last attempt...')
+                            sleep(5)
+                            try:
+                                obitFinishBatch(images, model, ocrAgent, nonce)
+                            except Exception as Argument:
+                                logging.exception('Error occured on batch #' + str(nonce))
+                nonce += 1
+                images = []
+                batchSize = 0
+                batchNames = []
+                gc.collect()
+    obitFinishBatch(images, model, ocrAgent, nonce, batchNames)  # runs final batch; if the last batch wasn't >= MAX_BATCH_SIZE, then there are leftover images
+    nonce += 1
+    images = []
+    batchSize = 0
+    batchNames = []
+    gc.collect()
+
+    print('### Done! ###')
+
 
 if __name__ == '__main__':
-    main()
+
+    if isFlagSet('-o'):
+        obitMain()
+    else:
+        main()
+
 
 """
     Some debugging information for layout-parser
