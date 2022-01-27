@@ -487,7 +487,7 @@ def obitImageSortKey(name):
             return ''
 
 # TODO: fix parameters
-def obitFinishBatch(images, model, ocrAgent, nonce, batchNames):
+def obitFinishBatch(images, nonce, batchNames):
     '''this does layout detection and ocr on an image batch with a preloaded model and ocrAgent. saves to <nonce>-transcribed.txt'''
     layouts = []
     # modified getLayouts to work with preloaded model instead of loading each time
@@ -501,7 +501,9 @@ def obitFinishBatch(images, model, ocrAgent, nonce, batchNames):
 		gibberish = True
 		orientation = prevOrientation
 		if orientation != 0: # rotate the image to the orientation of the previous image (as long as the orientation wasn't 0)
-			rotatedImage = imutils.rotate(image, orientation)
+			rotatedImage = imutils.rotate(image, angle=orientation)
+		
+		print('Trying',image,'at',orientation)
 			
 		rotateCount = 0
 		layout = None
@@ -512,7 +514,15 @@ def obitFinishBatch(images, model, ocrAgent, nonce, batchNames):
 			layout = getLayout(image)  # run LP to get the layout of the image
 			textRegions = getTextRegions(layout) # get the text regions out of the image layout
 			texts = ocr(textRegions) # run OCR on the regions to get the text
-			
+			gibberish = isGibberish(texts)
+			if gibberish:
+				orientation = (orientation + 90) % 360  # wrap the angle around if it goes over
+				rotatedImage = imutils.rotate(rotatedImage, angle=90) # rotate the image 90 degrees for the next round
+				rotateCount += 1
+				print('Gibberish, trying', orientation)
+			else:
+				print(orientation,'was not gibberish!')
+				prevOrientation = orientation # if not gibberish, record the orientation to use it on the next image
 		
 		# end while loop
 	# end for loop
@@ -578,25 +588,25 @@ def obitMain():
             images.append(image)
             if batchSize >= MAX_BATCH_SIZE:
                 try:
-                    obitFinishBatch(images, lpModel, ocrAgent, nonce, batchNames) # HERE
+                    obitFinishBatch(images, nonce, batchNames)
                 except:  # same issue as image reading try catch section; the technical issue is that the GPO updates every few hours (guessing around 2-3) which forces the workstation to disconnect before realizing that it has permissions to access the remote drives
                     logging.debug(os.path.join(curDir, name), ' file, batch #' + str(nonce) + ' failed. Retrying...')
                     sleep(5)
                     try:
-                        obitFinishBatch(images, lpModel, ocrAgent, nonce, batchNames) # HERE
+                        obitFinishBatch(images, nonce, batchNames)
                     except:
                             logging.debug(os.path.join(curDir, name), ' file, batch #' + str(nonce) + ' failed again. Last attempt...')
                             sleep(5)
                             try:
-                                obitFinishBatch(images, lpModel, ocrAgent, nonce, batchNames) # HERE
+                                obitFinishBatch(images, nonce, batchNames)
                             except Exception as Argument:
                                 logging.exception('Error occured on batch #' + str(nonce))
                 nonce += 1
                 images = []
                 batchSize = 0
                 batchNames = []
-                gc.collect() # HERE (below)
-    obitFinishBatch(images, model, ocrAgent, nonce, batchNames)  # runs final batch; if the last batch wasn't >= MAX_BATCH_SIZE, then there are leftover images
+                gc.collect()
+    obitFinishBatch(images, nonce, batchNames)  # runs final batch; if the last batch wasn't >= MAX_BATCH_SIZE, then there are leftover images
     nonce += 1
     images = []
     batchSize = 0
