@@ -270,14 +270,15 @@ def ocr(textRegions): # this version does one image at a time
 		
 	return lp.Layout(regions).get_texts()
 
-def isLegibleText(text):
+def isGibberish(textRegions):
+	"""Scans the OCR output for common words in obituaries. If none are found, assumes the text is gibberish (image likely the wrong way)"""
     words = ['died','passed away','born','life','survived','funeral','family','friends','January', 'February','March','April','May','June','July','August','September','October','November','December','Monday','Tuesday','Wednesday','Thursday','Friday', 'Saturday','Sunday','wife','husband','married']
-    for word in words:
-        result = text.find(word)
-        if result != -1:
-            return true
-
-    return false
+	for region in textRegions:
+		for word in words:
+			result = text.find(word)
+			if result != -1:
+				return false # legitimate word found; probably isn't gibberish
+    return true # no legitimate words found; best guess is that it's gibberish
 
 
 
@@ -485,7 +486,7 @@ def obitImageSortKey(name):
         except:
             return ''
 
-
+# TODO: fix parameters
 def obitFinishBatch(images, model, ocrAgent, nonce, batchNames):
     '''this does layout detection and ocr on an image batch with a preloaded model and ocrAgent. saves to <nonce>-transcribed.txt'''
     layouts = []
@@ -502,40 +503,24 @@ def obitFinishBatch(images, model, ocrAgent, nonce, batchNames):
 		if orientation != 0: # rotate the image to the orientation of the previous image (as long as the orientation wasn't 0)
 			rotatedImage = imutils.rotate(image, orientation)
 			
+		rotateCount = 0
+		layout = None
+		textRegions = None
+		texts = None
+		
+		while gibberish and rotateCount < 4:
+			layout = getLayout(image)  # run LP to get the layout of the image
+			textRegions = getTextRegions(layout) # get the text regions out of the image layout
+			texts = ocr(textRegions) # run OCR on the regions to get the text
+			
+		
+		# end while loop
+	# end for loop
+	gc.collect()
+    text = addPageLabels(texts, batchNames)
+   	save(text, str(nonce) + '-transcribed.txt')
 		
 	## END SINGLE-IMAGE CODE ##
-
-    for image in images:
-        layout = model.detect(image)
-        if len(layout) < 1:
-            print(image)
-            raise Exception('No regions found in the image')
-        layouts.append(layout)
-    gc.collect()
-    # end modified getLayouts #
-
-    textRegions = getTextRegions(layouts)
-
-    # modified ocr to work with preloaded agent #
-    texts = []
-    print('OCR')
-    for pageNum in range(len(textRegions)):
-        print(pageNum)
-        regions = []
-        image = images[pageNum]
-        for region in textRegions[pageNum]:
-            segmentImage = (region
-                               .pad(left=5, right=5, top=5, bottom=5)  # add padding in each image segment can help improve robustness
-                               .crop_image(image))
-            regionText = ocrAgent.detect(segmentImage)
-            region.set(text=regionText, inplace=True)
-            regions.append(region)
-        texts.append(lp.Layout(regions).get_texts())
-    # end modified ocr #
-    
-    gc.collect()
-    text = addPageLabels(texts, batchNames)
-    save(text, str(nonce) + '-transcribed.txt')
     
 
 def obitMain():
