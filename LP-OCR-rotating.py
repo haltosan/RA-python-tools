@@ -1,6 +1,6 @@
 """
 Authors: Ethan, Sarah, Annie
-Requires the record_linking environment (specific dectron2, pywin32, etc. versions)
+Requires the record_linking environment (specific detectron2, pywin32, etc. versions)
 
 Docs: https://github.com/haltosan/RA-python-tools/wiki/Layout-Parser
 """
@@ -8,6 +8,7 @@ Docs: https://github.com/haltosan/RA-python-tools/wiki/Layout-Parser
 print('Importing', flush = True, end='...')
 import pytesseract
 import cv2
+import imutils
 import layoutparser as lp
 import os
 import sys
@@ -43,7 +44,7 @@ LSR_MODEL = r'V:\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\mode
 LSR_LABEL_MAP = {0:"Column"}
 LSR_TEXT_LABEL = 'Column'
 
-# LP and OCR as global variables
+# LP and OCR as global variables (set to obit stuff right now)
 lpModel = lp.Detectron2LayoutModel(config_path = config_path,
                                    model_path = model_path,
                                    extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.75],
@@ -214,21 +215,13 @@ def getImages():
     return images
 
 
-def getLayouts(images):
+def getLayout(image): # edited to get the layout for one image
     """Uses the layout parser tool to select select all regions from an image"""
-
-    model = lp.Detectron2LayoutModel(config_path = config_path,
-                                     model_path = model_path,
-                                     extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.75],
-                                     label_map = label_map)
-    layouts = []
-    for image in images:
-        layout = model.detect(image)
-        if len(layout) < 1:
-            print(image)
-            raise Exception('No regions found in the image')
-        layouts.append(layout)
-    return layouts
+	layout = lpModel.detect(image)
+    if len(layout) < 1:
+    	print(image)
+    	raise Exception('No regions found in the image')
+    return layout
 
 
 def getTextRegions(layout): # adjusted to do one layout at a time
@@ -256,7 +249,7 @@ def getTextRegions(layout): # adjusted to do one layout at a time
     # the center function is as follows: the highest weight is the x value, next is the y value
     #   the x value is divided and rounded up to give discrete intervals; this is to prevent something that is slightly more left to win over something that is higher
 	
-	# TODO: figure out how to adjust this for a single layout (I don't speak lambda like you do, and my Python is only so-so)
+	# TODO: figure out if this needs to be adjusted (I don't speak lambda...)
     center = lambda textBlock : [ceil((textBlock.block.y_1 + textBlock.block.y_2)/600), (textBlock.block.x_1 + textBlock.block.x_2)/2]
     for page in textRegions:
         page._blocks.sort(key = center)  # the lower the number, the further left and up it is
@@ -497,6 +490,20 @@ def obitFinishBatch(images, model, ocrAgent, nonce, batchNames):
     '''this does layout detection and ocr on an image batch with a preloaded model and ocrAgent. saves to <nonce>-transcribed.txt'''
     layouts = []
     # modified getLayouts to work with preloaded model instead of loading each time
+	
+	## START SINGLE-IMAGE CODE ##
+	orientation = 0
+	prevOrientation = 0
+	texts = []
+	
+	for image in images:
+		gibberish = True
+		orientation = prevOrientation
+		if orientation != 0: # rotate the image to the orientation of the previous image (as long as the orientation wasn't 0)
+			rotatedImage = imutils.rotate(image, orientation)
+			
+		
+	## END SINGLE-IMAGE CODE ##
 
     for image in images:
         layout = model.detect(image)
@@ -550,11 +557,6 @@ def obitMain():
     dPrint('files found: ' + str(sum([len(i) for i in fileNames])))  # sums the number of files in each dir
     logging.debug(str(sum([len(i) for i in fileNames])) + ' files')
     print('#Loading model#')
-    model = lp.Detectron2LayoutModel(config_path = config_path,
-                                     model_path = model_path,
-                                     extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.75],
-                                     label_map = label_map)
-    ocrAgent = lp.TesseractAgent(languages='eng')
 
     images = []
     batchSize = 0
@@ -591,24 +593,24 @@ def obitMain():
             images.append(image)
             if batchSize >= MAX_BATCH_SIZE:
                 try:
-                    obitFinishBatch(images, model, ocrAgent, nonce, batchNames)
+                    obitFinishBatch(images, lpModel, ocrAgent, nonce, batchNames) # HERE
                 except:  # same issue as image reading try catch section; the technical issue is that the GPO updates every few hours (guessing around 2-3) which forces the workstation to disconnect before realizing that it has permissions to access the remote drives
                     logging.debug(os.path.join(curDir, name), ' file, batch #' + str(nonce) + ' failed. Retrying...')
                     sleep(5)
                     try:
-                        obitFinishBatch(images, model, ocrAgent, nonce)
+                        obitFinishBatch(images, lpModel, ocrAgent, nonce, batchNames) # HERE
                     except:
                             logging.debug(os.path.join(curDir, name), ' file, batch #' + str(nonce) + ' failed again. Last attempt...')
                             sleep(5)
                             try:
-                                obitFinishBatch(images, model, ocrAgent, nonce)
+                                obitFinishBatch(images, lpModel, ocrAgent, nonce, batchNames) # HERE
                             except Exception as Argument:
                                 logging.exception('Error occured on batch #' + str(nonce))
                 nonce += 1
                 images = []
                 batchSize = 0
                 batchNames = []
-                gc.collect()
+                gc.collect() # HERE (below)
     obitFinishBatch(images, model, ocrAgent, nonce, batchNames)  # runs final batch; if the last batch wasn't >= MAX_BATCH_SIZE, then there are leftover images
     nonce += 1
     images = []
