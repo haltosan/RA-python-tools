@@ -43,6 +43,13 @@ LSR_MODEL = r'V:\RA_work_folders\Ethan_Simmons\layoutParser\customPubLayout\mode
 LSR_LABEL_MAP = {0:"Column"}
 LSR_TEXT_LABEL = 'Column'
 
+# LP and OCR as global variables
+lpModel = lp.Detectron2LayoutModel(config_path = config_path,
+                                   model_path = model_path,
+                                   extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.75],
+                                   label_map = label_map)
+ocrAgent = lp.TesseractAgent(languages='eng')
+
 # command line flags
 delImages = False
 useCache = False
@@ -224,71 +231,51 @@ def getLayouts(images):
     return layouts
 
 
-def getTextRegions(layouts):
+def getTextRegions(layout): # adjusted to do one layout at a time
     """Remove all regions that aren't text regions"""
     textRegions = []
     area = lambda regionObj : regionObj.block.height * regionObj.block.width  # area function
     
-    for layout in layouts:
-        pageTextRegions = lp.Layout([b for b in layout if b.type==textLabel])  # grab everything that is a text region
+    pageTextRegions = lp.Layout([b for b in layout if b.type==textLabel])  # grab everything that is a text region
         
-        # Remove text regions that are subsets of larger text regions
-        # The smaller regions are removed to avoid redundant OCR
-        pageTextRegions = lp.Layout([region for region in pageTextRegions if not any(region.is_in(otherRegion) and area(region) < area(otherRegion) for otherRegion in pageTextRegions)])
-        textRegions.append(pageTextRegions)
+    # Remove text regions that are subsets of larger text regions
+    # The smaller regions are removed to avoid redundant OCR
+    pageTextRegions = lp.Layout([region for region in pageTextRegions if not any(region.is_in(otherRegion) and area(region) < area(otherRegion) for otherRegion in pageTextRegions)])
+    textRegions.append(pageTextRegions)
 
     # increases the region size to ensure that text isn't being cut off
     regionPadding = 70  # some arbitrary value that seems to work pretty well
-    for page in textRegions:
-        for textRegion in page:
-            rect = textRegion.block
-            rect.x_1 -= regionPadding  # left is negative
-            rect.y_1 -= regionPadding  # up is negative
-            rect.x_2 += regionPadding
-            rect.y_2 += regionPadding
+     for textRegion in textRegions:
+        rect = textRegion.block
+        rect.x_1 -= regionPadding  # left is negative
+        rect.y_1 -= regionPadding  # up is negative
+        rect.x_2 += regionPadding
+        rect.y_2 += regionPadding
 
     # sorts the regions based on their centers; orders the regions from left to right
     # the center function is as follows: the highest weight is the x value, next is the y value
     #   the x value is divided and rounded up to give discrete intervals; this is to prevent something that is slightly more left to win over something that is higher
+	
+	# TODO: figure out how to adjust this for a single layout (I don't speak lambda like you do, and my Python is only so-so)
     center = lambda textBlock : [ceil((textBlock.block.y_1 + textBlock.block.y_2)/600), (textBlock.block.x_1 + textBlock.block.x_2)/2]
     for page in textRegions:
         page._blocks.sort(key = center)  # the lower the number, the further left and up it is
     
     return textRegions
 
-
-def ocr(textRegions, images):
-    """Run optical character recognition on the images to extract text from it"""
-    ocrAgent = lp.TesseractAgent(languages='eng')
-    texts = []
-    # for image
-    for pageNum in range(len(textRegions)):
-        
-        print(' ' + numberTH(pageNum + 1), 'Page...')  # pageNum+1 because indexing starts at 0
-        regions = []
-        image = images[pageNum]
-
-        verified = False  # text looks like gibberish
-        rotation_angle = 0
-        while not verified and rotation_angle < 360:
-            
-            # for region in image
-            for region in tqdm(textRegions[pageNum], ascii = True, leave = False):  # tqdm is a loading bar; this section tends to take the longest
-                #TODO: figure out how to rotate images
-                segmentImage = (region
-                                .pad(left=5, right=5, top=5, bottom=5)  # add padding in each image segment can help improve robustness
-                                .crop_image(image))
-                regionText = ocrAgent.detect(segmentImage)
-                #regionText = ocrAgent.detect(image, return_response=False, return_only_text=True, agg_output_level=None) # just return the text
-                region.set(text=regionText, inplace=True)
-                regions.append(region)
-                if isLegibleText(region.text): # if a keyword is found in the region
-                    verified = True
-            rotation_angle += 90
-        # end while
-        texts.append(lp.Layout(regions).get_texts())
-         
-    return texts
+   
+def ocr(textRegions): # this version does one image at a time
+	regions = []
+	for region in tqdm(textRegions, ascii = True, leave = False):  # tqdm is a loading bar; this section tends to take the longest
+		segmentImage = (region
+                        .pad(left=5, right=5, top=5, bottom=5)  # add padding in each image segment can help improve robustness
+                        .crop_image(image))
+        regionText = ocrAgent.detect(segmentImage)
+		#regionText = ocrAgent.detect(image, return_response=False, return_only_text=True, agg_output_level=None) # just return the text
+        region.set(text=regionText, inplace=True)
+        regions.append(region)
+		
+	return lp.Layout(regions).get_texts()
 
 def isLegibleText(text):
     words = ['died','passed away','born','life','survived','funeral','family','friends','January', 'February','March','April','May','June','July','August','September','October','November','December','Monday','Tuesday','Wednesday','Thursday','Friday', 'Saturday','Sunday','wife','husband','married']
