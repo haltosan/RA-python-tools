@@ -1,0 +1,6 @@
+R:
+cd JoePriceResearch\Python\Miniconda\Scripts
+call activate.bat record_linking
+V:
+cd V:\papers\current\college_dataset\SAT_yearbooks\code
+jupyter notebook
