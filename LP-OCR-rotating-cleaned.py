@@ -55,6 +55,7 @@ def processRegions(regions):
 
 
 def getImages():  # generator for image objects (type np.array)
+    localCount = 0
     dirList = [x[0] for x in os.walk('.')]
     for directory in dirList:
         nameList = [file for file in os.listdir(directory) if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]
@@ -128,8 +129,6 @@ def save(text, location):
 def appending_save(texts):
     combinedText = '\n'.join(texts)
     currentBatch.append(combinedText)
-    # TODO: test new save file naming system
-    # TODO: add a failsafe for the save file
     fileName = directoryName + '-save.txt' # make the save file have a name unique to the directory
     filePath = os.path.join(SAVE_FILE_PATH, fileName)
     if len(currentBatch) > 4: # output every time it reads five images
@@ -182,13 +181,27 @@ def main():
         texts.append('--- PAGE END ---') # add the separating text
         appending_save(texts)
         imageNumber += 1
-        
-
-
-
-
 
 ## running main ##
-main()
+global globalCount
+globalCount = 0
+
+try:
+   main()
+except Exception as e:
+    logging.warning('main failed with this exception:\n' + e)
+    sleep(15)
+    print('Trying main again...')
+    try:
+        main()
+    except Exception as ex:
+        logging.warning('main failed again, with this exception:\n' + ex)
+        sleep(15)
+        print('Trying main again...')
+        try:
+            main()
+        except Exception as exep:
+            logging.critical('main failed for the 3rd time on image count ' + globalCount + ', with this exception: ' + exep)
+            logging.critical('The previous two errors were (in order):\n' + e + '\n\n' + ex)
 
 
