@@ -124,12 +124,33 @@ def appending_save(texts):
     combinedText = '\n'.join(texts)
     currentBatch.append(combinedText)
     # TODO: test new save file naming system
+    # TODO: add a failsafe for the save file
     fileName = directoryName + '-save.txt' # make the save file have a name unique to the directory
     filePath = os.path.join(SAVE_FILE_PATH, fileName)
-    if (len(currentBatch) > 4): # output every time it reads five images
-        with open(filePath, 'a') as x:
-            x.write('\n'.join(currentBatch))
-            currentBatch.clear()
+    if len(currentBatch, filePath) > 4: # output every time it reads five images
+        try:
+            append(currentBatch, filePath)
+        except FileNotFoundError:
+            logging.warning('Save file not found')
+            sleep(5)
+            try:
+                append(currentBatch, filePath)
+            except FileNotFoundError:
+                logging.warning('Save file not found again')
+                sleep(5)
+                try:
+                    append(currentBatch, filePath)
+                except FileNotFoundError:
+                    logging.warning('Trying one more time before succumbing to a critical error...')
+                    sleep(15)
+                    append(currentBatch, filePath)
+
+
+
+def append(currentBatch, filePath):
+    with open(filePath, 'a') as x:
+        x.write('\n'.join(currentBatch))
+        currentBatch.clear()
 
     
 def main():
