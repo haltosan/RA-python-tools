@@ -21,7 +21,7 @@ ocrAgent = lp.TesseractAgent(languages='eng')
 currentBatch = []
 
 IMAGE_FILE_TYPE = 'JPG'
-SAVE_FILE_PATH = r'V:\papers\current\tree_growth\US\Skagit\skagit_obits\LP_output\'
+SAVE_FILE_PATH = r'V:\papers\current\tree_growth\US\Skagit\skagit_obits\LP_output\\'
 
 
 
@@ -101,9 +101,10 @@ def appending_save(texts):
     combinedText = '\n'.join(texts)
     currentBatch.append(combinedText)
     # TODO: test new save file naming system
-    fileName = SAVE_FILE_PATH + directoryName + '-save.txt' # make the save file have a name unique to the directory
+    fileName = directoryName + '-save.txt' # make the save file have a name unique to the directory
+    filePath = os.path.join(SAVE_FILE_PATH, fileName)
     if (len(currentBatch) > 4): # output every time it reads five images
-        with open(fileName, 'a') as x:
+        with open(filePath, 'a') as x:
             x.write('\n'.join(currentBatch))
             currentBatch.clear()
 
