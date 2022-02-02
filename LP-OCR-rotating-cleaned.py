@@ -61,11 +61,34 @@ def getImages():  # generator for image objects (type np.array)
         nameList.sort(key=fileNameSort)
         for name in nameList:
             global imageName
-            imageName = os.path.join(directory, name)
+            imageName = os.path.join(directory,name)
             global directoryName
             directoryName = os.path.basename(directory)  # TODO: FIGURE OUT HOW MUCH OF THE DIRECTORY THIS GIVES YOU
             print(imageName)
-            yield cv2.imread(imageName)
+
+            image = cv2.imread(imageName)
+            # start image failsafe
+            try:
+                image = image[..., ::-1]
+                yield image
+            except:  # this try/catch section is for when the remote drives get disconnected; it allows a small pause to reconnect
+                sleep(5)
+                image = cv2.imread(imageName)
+                logging.warning('Image failed: ' + str(imageName))
+                try:
+                    image = image[..., ::-1]
+                    yield image
+                except:
+                    logging.warning('Image failed again: ' + str(imageName))
+                    sleep(5)
+                    image = cv2.imread(imageName)
+                    try:
+                        image = image[..., ::-1]
+                        yield image
+                    except:
+                        logging.critical('Image completely failed: ' + str(imageName))
+                        raise Exception('The image failed to load: ' + str(imageName))
+            # end image failsafe
 
 def getTexts(image):
     return ocr(getTextRegions(image), image)
