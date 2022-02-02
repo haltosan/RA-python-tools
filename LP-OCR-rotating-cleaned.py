@@ -108,12 +108,17 @@ def ocr(textRegions, image):
         texts.append(ocrAgent.detect(segmentedImage))
     return texts
 
-def rotate(image):
-    return numpy.rot90(image)
+def rotateImage(image):
+    try:
+        rotatedImage = numpy.rot90(image)
+        return rotatedImage
+    except:
+        logging.warning('Image failed to rotate...returning original')
+    return image
 
 def rotateIter(image, rotateCount):
     for i in range(rotateCount):
-        image = rotate(image)
+        image = rotateImage(image)
     return image
 
 def save(text, location):
@@ -127,7 +132,7 @@ def appending_save(texts):
     # TODO: add a failsafe for the save file
     fileName = directoryName + '-save.txt' # make the save file have a name unique to the directory
     filePath = os.path.join(SAVE_FILE_PATH, fileName)
-    if len(currentBatch, filePath) > 4: # output every time it reads five images
+    if len(currentBatch) > 4: # output every time it reads five images
         try:
             append(currentBatch, filePath)
         except FileNotFoundError:
@@ -141,7 +146,7 @@ def appending_save(texts):
                 try:
                     append(currentBatch, filePath)
                 except FileNotFoundError:
-                    logging.warning('Trying one more time before succumbing to a critical error...')
+                    logging.warning('Trying save file one more time before succumbing to a critical error...')
                     sleep(15)
                     append(currentBatch, filePath)
 
@@ -167,7 +172,7 @@ def main():
         rotateCount = 0
         while isGibberish(texts) and rotateCount < 4:
             print('flip',rotateCount)
-            image = rotate(image)
+            image = rotateImage(image)
             texts = getTexts(image)
             rotateCount += 1
         previousRotation = rotateCount
