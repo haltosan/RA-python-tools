@@ -21,7 +21,7 @@ ocrAgent = lp.TesseractAgent(languages='eng')
 currentBatch = []
 
 IMAGE_FILE_TYPE = 'JPG'
-SAVE_FILE_NAME = 'appending_save.txt'
+SAVE_FILE_PATH = r'V:\papers\current\tree_growth\US\Skagit\skagit_obits\LP_output\'
 
 
 
@@ -62,6 +62,8 @@ def getImages():  # generator for image objects (type np.array)
         for name in nameList:
             global imageName
             imageName = os.path.join(directory, name)
+            global directoryName
+            directoryName = os.path.basename(directory)  # TODO: FIGURE OUT HOW MUCH OF THE DIRECTORY THIS GIVES YOU
             print(imageName)
             yield cv2.imread(imageName)
 
@@ -98,9 +100,10 @@ def save(text, location):
 def appending_save(texts):
     combinedText = '\n'.join(texts)
     currentBatch.append(combinedText)
-
-    if (len(currentBatch) > 4): # output every time it reads fifty images
-        with open(SAVE_FILE_NAME, 'a') as x:
+    # TODO: test new save file naming system
+    fileName = SAVE_FILE_PATH + directoryName + '-save.txt' # make the save file have a name unique to the directory
+    if (len(currentBatch) > 4): # output every time it reads five images
+        with open(fileName, 'a') as x:
             x.write('\n'.join(currentBatch))
             currentBatch.clear()
 
@@ -136,8 +139,6 @@ def main():
 
 
 ## running main ##
-
-
 main()
 
 
