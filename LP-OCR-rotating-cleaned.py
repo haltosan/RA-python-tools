@@ -61,6 +61,12 @@ def getImages():  # generator for image objects (type np.array)
         nameList = [file for file in os.listdir(directory) if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]
         nameList.sort(key=fileNameSort)
         for name in nameList:
+
+            # if this image has already been done, skip it
+            if localCount < globalCount:
+                localCount += 1
+                continue
+
             global imageName
             imageName = os.path.join(directory,name)
             global directoryName
@@ -90,6 +96,9 @@ def getImages():  # generator for image objects (type np.array)
                         logging.critical('Image completely failed: ' + str(imageName))
                         raise Exception('The image failed to load: ' + str(imageName))
             # end image failsafe
+            globalCount += 1
+            localCount += 1
+
 
 def getTexts(image):
     return ocr(getTextRegions(image), image)
@@ -189,19 +198,17 @@ globalCount = 0
 try:
    main()
 except Exception as e:
-    logging.warning('main failed with this exception:\n' + e)
+    logging.warning('main failed on image count ' + globalCount +  ', with this exception:\n' + e)
     sleep(15)
     print('Trying main again...')
     try:
         main()
     except Exception as ex:
-        logging.warning('main failed again, with this exception:\n' + ex)
+        logging.warning('main failed again on image count ' + globalCount +  ', with this exception:\n' + ex)
         sleep(15)
         print('Trying main again...')
         try:
             main()
         except Exception as exep:
             logging.critical('main failed for the 3rd time on image count ' + globalCount + ', with this exception: ' + exep)
-            logging.critical('The previous two errors were (in order):\n' + e + '\n\n' + ex)
-
-
+            logging.critical('The previous two errors were (in order):\n' + e + '\n' + ex)
