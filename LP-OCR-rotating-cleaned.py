@@ -79,7 +79,7 @@ def getImages():  # generator for image objects (type np.array)
         nameList.sort(key=fileNameSort)  # put it in a reasonable order
         for name in nameList:
 
-            # if this image was done in a previous main run (and it's starting again because of an error), skip
+            # skip this image if it was completed by a previous run of main()
             if localCount < globalCount:
                 localCount += 1
                 continue
