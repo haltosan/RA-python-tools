@@ -4,6 +4,7 @@ import numpy
 import re
 import cv2
 from math import ceil
+from time import sleep
 
 import pytesseract
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.environ['USERPROFILE'], 'Desktop\\localTess\\tesseract.exe')
@@ -23,26 +24,50 @@ currentBatch = []
 IMAGE_FILE_TYPE = 'JPG'
 SAVE_FILE_PATH = r'V:\papers\current\tree_growth\US\Skagit\skagit_obits\LP_output\\'
 
-
+TASK_BATCH_STRING = ''
 
 ## helper functions ##
 
+
+def log(message):
+    try:
+        with open(SAVE_FILE_PATH + '.log', 'a') as x:
+            x.write(message)
+    except:
+        print('log failure')
+        sleep(5)
+        try:
+            with open(SAVE_FILE_PATH + '.log', 'a') as x:
+                x.write(message)
+        except:
+            print('secondary log failure')
+            sleep(5)
+            try:
+                with open(SAVE_FILE_PATH + '.log', 'a') as x:
+                    x.write(message)
+            except Exception as e:
+                print('final log failure')
+                print('exception:', e)
+                print('location:', SAVE_FILE_PATH + '.log')
+
+def log(level, message):
+    log('[' + level.upper() + ']\t' + message)
 
 def timedRetry(command, errorMessage, sleepTime = 5, shouldReturn = False):
     try:
         exec(command)
     except:
-        logging.warning(errorMessage + ' [1st fail]')
+        log('warning', errorMessage + ' [1st fail]')
         sleep(sleepTime)
         try:
             exec(command)
         except:
-            logging.warning(errorMessage + ' [2nd fail]')
+            log('warning', errorMessage + ' [2nd fail]')
             sleep(sleepTime)
             try:
                 exec(command)
             except Exception as e:
-                logging.critical(errorMessage + ' [last fail]')
+                log('critical', errorMessage + ' [last fail]')
                 raise e
 
 def fileNameSort(name):  # to be used as a sorting key
@@ -99,19 +124,19 @@ def getImages():  # generator for image objects (type np.array)
             except:  # this try/catch section is for when the remote drives get disconnected; it allows a small pause to reconnect
                 sleep(5)
                 image = cv2.imread(imageName)
-                logging.warning('Image failed: ' + str(imageName))
+                log('warning', 'Image failed: ' + str(imageName))
                 try:
                     image = image[..., ::-1]
                     yield image
                 except:
-                    logging.warning('Image failed again: ' + str(imageName))
+                    log('warning', 'Image failed again: ' + str(imageName))
                     sleep(5)
                     image = cv2.imread(imageName)
                     try:
                         image = image[..., ::-1]
                         yield image
                     except:
-                        logging.critical('Image completely failed: ' + str(imageName))
+                        log('critical', 'Image completely failed: ' + str(imageName))
                         raise Exception('The image failed to load: ' + str(imageName))
             # end image failsafe
             globalCount += 1
@@ -141,7 +166,7 @@ def rotateImage(image):
         rotatedImage = numpy.rot90(image)
         return rotatedImage
     except:
-        logging.warning('Image failed to rotate...returning original')
+        log('warning','Image failed to rotate...returning original')
     return image
 
 def rotateIter(image, rotateCount):
@@ -162,17 +187,17 @@ def appending_save(texts):
         try:
             append(currentBatch, filePath)
         except FileNotFoundError:
-            logging.warning('Save file not found')
+            log('warning', 'Save file not found')
             sleep(5)
             try:
                 append(currentBatch, filePath)
             except FileNotFoundError:
-                logging.warning('Save file not found again')
+                log('warning', 'Save file not found again')
                 sleep(5)
                 try:
                     append(currentBatch, filePath)
                 except FileNotFoundError:
-                    logging.critical('Trying save file one more time before succumbing to a critical error...')
+                    log('critical', 'Trying save file one more time before succumbing to a critical error...')
                     sleep(15)
                     append(currentBatch, filePath)
 
@@ -185,11 +210,13 @@ def append(currentBatch, filePath):
 
     
 def main():
+    global TASK_BATCH_STRING
     imageNumber = 0
     if len(sys.argv) < 1:
         print("usage: [script name] [image directory]")
         exit(1)
     workingDir = sys.argv[1]
+    TASK_BATCH_STRING = workingDir.split('-')[-1]  # get the number that comes after the '-'
     timedRetry('os.chdir('+workingDir+')', 'failed to move into the proper directory: ' + workingDir)
     previousRotation = 0
     for image in getImages():
@@ -216,17 +243,17 @@ globalCount = 0
 try:
    main()
 except Exception as e:
-    logging.warning('main failed on image count ' + globalCount +  ', with this exception:\n' + e)
+    log('warning', 'main failed on image count ' + globalCount +  ', with this exception:\n' + e)
     sleep(15)
     print('Trying main again...')
     try:
         main()
     except Exception as ex:
-        logging.warning('main failed again on image count ' + globalCount +  ', with this exception:\n' + ex)
+        log('warning', 'main failed again on image count ' + globalCount +  ', with this exception:\n' + ex)
         sleep(15)
         print('Trying main again...')
         try:
             main()
         except Exception as exep:
-            logging.critical('main failed for the 3rd time on image count ' + globalCount + ', with this exception: ' + exep)
-            logging.critical('The previous two errors were (in order):\n' + e + '\n' + ex)
+            log('critical', 'main failed for the 3rd time on image count ' + globalCount + ', with this exception: ' + exep)
+            log('critical', 'The previous two errors were (in order):\n' + e + '\n' + ex)
