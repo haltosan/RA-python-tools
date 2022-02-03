@@ -18,4 +18,4 @@ Add anything to the wiki that you feel other RA's could find useful, and add pro
 
 Any questions that you wish to address to the entire team, just post in the issues section. This should be used for general questions because the entire team can then look over the conversation. Hopefully this can be a great resource. Please check this section from time to time to make sure people aren't lost on an assignment.
 
-If there are any questions, just email me (E.S.)
+If there are any other questions or questions about contributing, just email me (E.S.).

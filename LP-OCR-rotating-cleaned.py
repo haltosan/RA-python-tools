@@ -104,7 +104,7 @@ def getImages():  # generator for image objects (type np.array)
         nameList.sort(key=fileNameSort)  # put it in a reasonable order
         for name in nameList:
 
-            # if this image has already been done, skip it
+            # skip this image if it was completed by a previous run of main()
             if localCount < globalCount:
                 localCount += 1
                 continue
@@ -146,7 +146,7 @@ def getImages():  # generator for image objects (type np.array)
 def getTexts(image):
     return ocr(getTextRegions(image), image)
 
-def isGibberish(text):
+def isGibberish(text): # looks for keywords in the OCR'd text. If none found, assumes the output is gibberish because the image is the wrong way
     words = ['died','passed away','born','life','survived','funeral','family','friends','January', 'February','March','April','May','June','July','August','September','October','November','December','Monday','Tuesday','Wednesday','Thursday','Friday', 'Saturday','Sunday','wife','husband','married']
     for textBlock in text:
         for word in words:
@@ -220,10 +220,10 @@ def main():
     timedRetry('os.chdir('+workingDir+')', 'failed to move into the proper directory: ' + workingDir)
     previousRotation = 0
     for image in getImages():
-        image = rotateIter(image, previousRotation)
+        image = rotateIter(image, previousRotation) # set image to the orientation of the previous image (often matches)
         texts = getTexts(image)
         rotateCount = 0
-        while isGibberish(texts) and rotateCount < 4:
+        while isGibberish(texts) and rotateCount < 4: # if the output is gibberish, try rotating the image up to 3 times to get correct orientation
             print('flip',rotateCount)
             image = rotateImage(image)
             texts = getTexts(image)
@@ -240,7 +240,7 @@ def main():
 global globalCount
 globalCount = 0
 
-try:
+try: # run main up to 3 times to allow for drive issues; each run skips to the place the previous one left off
    main()
 except Exception as e:
     log('warning', 'main failed on image count ' + globalCount +  ', with this exception:\n' + e)

@@ -278,6 +278,12 @@ def month_to_int(month):
     else:
         return 12
 
+# # File sorting helper
+#
+# Define an order for file names (order based on the numbers found in them)
+
+def fileNameSort(name):
+    return int(''.join(re.findall(r'\d', name)))
 
 # # Main Code Body
 # 
@@ -300,7 +306,8 @@ with open(target, 'a', newline='', encoding='utf-8-sig') as fout:
     
     # runs through each file in the input folder
     # CHANGE STUFF HERE TO MAKE IT GO IN ORDER
-    for txt in [i for i in os.listdir() if i[-4:] == '.txt']:
+    fileNames = [i for i in os.listdir() if i[-4:] == '.txt'].sort(key = fileNameSort)
+    for txt in fileNames:
         os.chdir(INPUT_PATH)
     
         # Use the split_input() function to split the text document, so the OCR output for each source image is separate
