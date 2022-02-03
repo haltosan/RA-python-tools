@@ -26,6 +26,7 @@ SAVE_FILE_PATH = r'V:\papers\current\tree_growth\US\Skagit\skagit_obits\LP_outpu
 
 TASK_BATCH_STRING = ''
 
+
 ## helper functions ##
 
 
@@ -98,9 +99,37 @@ def processRegions(regions):
 
 def getImages():  # generator for image objects (type np.array)
     localCount = 0
-    dirList = [x[0] for x in os.walk('.')]
+    try:
+        dirList = [x[0] for x in os.walk('.')]
+    except:
+        log('warning', 'couldn\'t get dir listing in getImages()')
+        sleep(5)
+        try:
+            dirList = [x[0] for x in os.walk('.')]
+        except:
+            log('warning', 'couldn\'t get dir listing in getImages() again')
+            sleep(5)
+            try:
+                dirList = [x[0] for x in os.walk('.')]
+            except Exception e:
+                log('critical', 'dir os.walk failed in getImages()')
+                raise e
     for directory in dirList:
-        nameList = [file for file in os.listdir(directory) if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]  # filter the image files only
+        try:
+            nameList = [file for file in os.listdir(directory) if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]  # filter the image files only
+        except:
+            log('warning', 'os.listdir failed once')
+            sleep(5)
+            try:
+                nameList = [file for file in os.listdir(directory) if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]
+            except:
+                log('warning', 'os.listdir failed twice')
+                sleep(5)
+                try:
+                    nameList = [file for file in os.listdir(directory) if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]
+                except Exception e:
+                    log('critical', 'os.listdir failed in getImages()')
+                    raise e
         nameList.sort(key=fileNameSort)  # put it in a reasonable order
         for name in nameList:
 
@@ -146,6 +175,7 @@ def getImages():  # generator for image objects (type np.array)
 def getTexts(image):
     return ocr(getTextRegions(image), image)
 
+
 def isGibberish(text): # looks for keywords in the OCR'd text. If none found, assumes the output is gibberish because the image is the wrong way
     words = ['died','passed away','born','life','survived','funeral','family','friends','January', 'February','March','April','May','June','July','August','September','October','November','December','Monday','Tuesday','Wednesday','Thursday','Friday', 'Saturday','Sunday','wife','husband','married']
     for textBlock in text:
@@ -154,12 +184,14 @@ def isGibberish(text): # looks for keywords in the OCR'd text. If none found, as
                 return False
     return True
 
+
 def ocr(textRegions, image):
     texts = []
     for region in textRegions:
         segmentedImage = region.pad(left=5, right=5, top=5, bottom=5).crop_image(image)
         texts.append(ocrAgent.detect(segmentedImage))
     return texts
+
 
 def rotateImage(image):
     try:
@@ -169,14 +201,12 @@ def rotateImage(image):
         log('warning','Image failed to rotate...returning original')
     return image
 
+
 def rotateIter(image, rotateCount):
     for i in range(rotateCount):
         image = rotateImage(image)
     return image
 
-def save(text, location):
-    with open(location, 'w') as x:
-        x.write('\n'.join(text))
 
 def appending_save(texts):
     combinedText = '\n'.join(texts)
@@ -202,13 +232,12 @@ def appending_save(texts):
                     append(currentBatch, filePath)
 
 
-
 def append(currentBatch, filePath):
     with open(filePath, 'a') as x:
         x.write('\n'.join(currentBatch))
         currentBatch.clear()
 
-    
+ 
 def main():
     global TASK_BATCH_STRING
     imageNumber = 0
@@ -236,7 +265,10 @@ def main():
         appending_save(texts)
         imageNumber += 1
 
+
 ## running main ##
+
+
 global globalCount
 globalCount = 0
 
