@@ -25,34 +25,35 @@ IMAGE_FILE_TYPE = 'JPG'
 SAVE_FILE_PATH = r'V:\papers\current\tree_growth\US\Skagit\skagit_obits\LP_output\\'
 
 TASK_BATCH_STRING = ''
+CURRENT_PROGRESS = 0
 
 
 ## helper functions ##
 
 
-def log(message):
+def log(message, end = '\n'):
     try:
         with open(SAVE_FILE_PATH + '.log', 'a') as x:
-            x.write(message)
+            x.write(message + end)
     except:
         print('log failure')
         sleep(5)
         try:
             with open(SAVE_FILE_PATH + '.log', 'a') as x:
-                x.write(message)
+                x.write(message + end)
         except:
             print('secondary log failure')
             sleep(5)
             try:
                 with open(SAVE_FILE_PATH + '.log', 'a') as x:
-                    x.write(message)
+                    x.write(message + end)
             except Exception as e:
                 print('final log failure')
                 print('exception:', e)
                 print('location:', SAVE_FILE_PATH + '.log')
 
-def log(level, message):
-    log('[' + level.upper() + ']\t' + message)
+def log(level, message, end = '\n'):
+    log('[' + level.upper() + ']\t' + message, end)
 
 def timedRetry(command, errorMessage, sleepTime = 5, shouldReturn = False):
     try:
@@ -209,11 +210,14 @@ def rotateIter(image, rotateCount):
 
 
 def appending_save(texts):
+    global CURRENT_PROGRESS
     combinedText = '\n'.join(texts)
     currentBatch.append(combinedText)
     fileName = directoryName + '-save.txt' # make the save file have a name unique to the directory
     filePath = os.path.join(SAVE_FILE_PATH, fileName)
     if len(currentBatch) > 4: # output every time it reads five images
+        log('info', 'writing batch ' + str(CURRENT_PROGRESS))
+        CURRENT_PROGRESS += 1
         try:
             append(currentBatch, filePath)
         except FileNotFoundError:
