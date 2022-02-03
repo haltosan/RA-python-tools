@@ -278,6 +278,12 @@ def month_to_int(month):
     else:
         return 12
 
+# # File sorting helper
+#
+# Define an order for file names (order based on the numbers found in them)
+
+def fileNameSort(name):
+    return int(''.join(re.findall(r'\d', name)))
 
 # # Main Code Body
 # 
