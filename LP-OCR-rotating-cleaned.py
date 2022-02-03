@@ -28,6 +28,23 @@ SAVE_FILE_PATH = r'V:\papers\current\tree_growth\US\Skagit\skagit_obits\LP_outpu
 ## helper functions ##
 
 
+def timedRetry(command, errorMessage, sleepTime = 5, shouldReturn = False):
+    try:
+        exec(command)
+    except:
+        logging.warning(errorMessage + ' [1st fail]')
+        sleep(sleepTime)
+        try:
+            exec(command)
+        except:
+            logging.warning(errorMessage + ' [2nd fail]')
+            sleep(sleepTime)
+            try:
+                exec(command)
+            except Exception as e:
+                logging.critical(errorMessage + ' [last fail]')
+                raise e
+
 def fileNameSort(name):  # to be used as a sorting key
     return int(''.join(re.findall(r'\d', name)))
 
@@ -58,8 +75,8 @@ def getImages():  # generator for image objects (type np.array)
     localCount = 0
     dirList = [x[0] for x in os.walk('.')]
     for directory in dirList:
-        nameList = [file for file in os.listdir(directory) if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]
-        nameList.sort(key=fileNameSort)
+        nameList = [file for file in os.listdir(directory) if file[-len(IMAGE_FILE_TYPE):].upper() == IMAGE_FILE_TYPE]  # filter the image files only
+        nameList.sort(key=fileNameSort)  # put it in a reasonable order
         for name in nameList:
 
             # if this image has already been done, skip it
@@ -71,11 +88,12 @@ def getImages():  # generator for image objects (type np.array)
             imageName = os.path.join(directory,name)
             global directoryName
             directoryName = os.path.basename(directory)  # TODO: FIGURE OUT HOW MUCH OF THE DIRECTORY THIS GIVES YOU
+                                                            # this gives you the highest directory or the file name; for example /users/peter/home -> home
             print(imageName)
 
-            image = cv2.imread(imageName)
             # start image failsafe
             try:
+                image = cv2.imread(imageName)
                 image = image[..., ::-1]
                 yield image
             except:  # this try/catch section is for when the remote drives get disconnected; it allows a small pause to reconnect
@@ -154,7 +172,7 @@ def appending_save(texts):
                 try:
                     append(currentBatch, filePath)
                 except FileNotFoundError:
-                    logging.warning('Trying save file one more time before succumbing to a critical error...')
+                    logging.critical('Trying save file one more time before succumbing to a critical error...')
                     sleep(15)
                     append(currentBatch, filePath)
 
@@ -169,10 +187,10 @@ def append(currentBatch, filePath):
 def main():
     imageNumber = 0
     if len(sys.argv) < 1:
-        print("[script name] [image directory]")
+        print("usage: [script name] [image directory]")
         exit(1)
     workingDir = sys.argv[1]
-    os.chdir(workingDir)
+    timedRetry('os.chdir('+workingDir+')', 'failed to move into the proper directory: ' + workingDir)
     previousRotation = 0
     for image in getImages():
         image = rotateIter(image, previousRotation)
