@@ -293,3 +293,5 @@ except Exception as e:
         except Exception as exep:
             log('critical', 'main failed for the 3rd time on image count ' + globalCount + ', with this exception: ' + exep)
             log('critical', 'The previous two errors were (in order):\n' + e + '\n' + ex)
+
+log('final message', 'The script has finished running. Computer should log off now.')
