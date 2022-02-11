@@ -4,7 +4,7 @@ Here are some good practices that should help the Github page be a bit more cons
 
 ## Project board
 
-Whenever you hear about a new assignment, even if it's just for you, add it to the _TODO_/_In Progress_ section. Whenever you take an assignment out of _TODO_, add a line at the end of the card that has the usernames/first initials of everyone working on it. This way we know who is working on anything at any given time.
+Whenever you hear about a new assignment, even if it's just for you, add it to the _TODO_/_In Progress_ section. Whenever you take an assignment out of _TODO_, make sure at least one person is in the 'assignees' section. This way we know who is working on anything at any given time. The deadline column is not always needed, but include one if it helps with timing.
 
 ## Code section
 
