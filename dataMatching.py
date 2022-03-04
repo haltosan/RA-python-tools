@@ -1,31 +1,34 @@
 from file_analysis import *
 
 
-def getColumn(csvFile, key):
+def getColumn(csvFile: list, key: str) -> list:
+    """Get a column from a csv file (as produced by file_analysis.get(fname))"""
     i = 0
     while True:
         col = csvColumn(csvFile, i)
-        if col[0] == key:
+        if col[0] == key:  # checks the first value of the row to see if it matches the column key exactly
             return col[1:]
-        if i > 1000:
+        if i > 1000:  # some arbitrary value to indicate we haven't reached a column with that value because csvColumn will always return something
             return None
         i += 1
 
-def matchOnValue(a, b, colKey):
-    aCol = getColumn(a, colKey)
-    bCol = getColumn(b, colKey)
-    for aI in range(len(aCol)):
-        for bI in range(len(bCol)):
-            if aCol[aI] == bCol[bI]:
-                yield a[aI + 1], b[bI + 1]
+def matchOnValue(tableA: list, tableB: list, columnKey: str) -> tuple:
+    """Generator. Returns the rows that match in some column in both csv files (file_analysis.get('foo.csv')) in the form (rowA, rowB)"""
+    aColumn = getColumn(tableA, columnKey)
+    bColumn = getColumn(tableB, columnKey)
+    for aIndex in range(len(aColumn)):  # compare each value from column a with each value of column b
+        for bIndex in range(len(bColumn)):
+            if aColumn[aIndex] == bColumn[bIndex]:  # compare column a with column b to see if they match exactly
+                yield tableA[aIndex + 1], tableB[bIndex + 1]  # 1 is added because the getColumn functions remove the first value (column key) when they return
 
-def fuzzyMatch(a, b, colKey, fuzzyFunction):
-    aCol = getColumn(a, colKey)
-    bCol = getColumn(b, colKey)
-    for aIndex in range(len(aCol)):
-        for bIndex in range(len(bCol)):
-            if fuzzyFunction(aCol[aIndex], bCol[bIndex]):
-                yield a[aIndex + 1], b[bIndex + 1]
+def fuzzyMatch(tableA: list, tableB: list, columnKey: str, matchFunction) -> tuple:
+    """Generator. Same as match on value but uses fuzzyFunction to determine if 2 values match"""
+    aColumn = getColumn(tableA, columnKey)
+    bColumn = getColumn(tableB, columnKey)
+    for aIndex in range(len(aColumn)):
+        for bIndex in range(len(bColumn)):
+            if matchFunction(aColumn[aIndex], bColumn[bIndex]) == True:
+                yield tableA[aIndex + 1], tableB[bIndex + 1]
 
 '''
 >>> a = get('a.csv')
