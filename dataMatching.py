@@ -31,9 +31,15 @@ def fuzzyMatch(tableA: list, tableB: list, columnKey: str, matchFunction) -> tup
 def join(tableA: list, tableB: list, columnKey: str, matchFunction = lambda x,y : x == y, reason: str = None) -> list:
     """Combine 2 tables if they match on some column value"""
     matches = []
-    matches.append(csvJoin( tableKeys(tableA) + tableKeys(tableB)))
-    for match in fuzzyMatch(tableA, tableB, columnKey, matchFunction):
-        matches.append(match[0] + ',' + match[1])
+    if reason == None:
+        matches.append(csvJoin( tableKeys(tableA) + tableKeys(tableB)))
+        for match in fuzzyMatch(tableA, tableB, columnKey, matchFunction):
+            matches.append(match[0] + ',' + match[1])
+    else:
+        matches.append(csvJoin( tableKeys(tableA) + tableKeys(tableB) + ['reason']))
+        for match in fuzzyMatch(tableA, tableB, columnKey, matchFunction):
+            matches.append(match[0] + ',' + match[1] + ',' + reason)
+            
     return matches
     
 
