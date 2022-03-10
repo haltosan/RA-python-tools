@@ -4,7 +4,7 @@ import csv
 import re
 import predicates as p  # file of predicates for cleaning functions
 #execfile(fName)
-pwd = r'C:\Users\haltosan\OneDrive\Desktop\nlp'
+pwd = r''
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 
 YEAR_RANGE = r'[23]'  # range of acceptable values in the 10's digit of the year
@@ -53,7 +53,7 @@ def init():
         print('Unable to change directory, not found')
 
 
-def get(fileName, splt='\n'):
+def get(fileName: str, splt='\n') -> list:
     """returns file fileName as a list split on the splt string"""
     x = open(fileName, 'r', encoding='utf-8')
     lines = x.read().split(splt)
@@ -61,8 +61,9 @@ def get(fileName, splt='\n'):
     return lines
 
 
-def save(text, out, csvStyle=False):
-    """writes text to out (file name), can also do it in a csv format\naccepts string, lists, and lists of lists"""
+def save(text: [str, list], out: str, csvStyle=False):
+    """writes text to out (file name), can also do it in a csv format
+accepts string, lists, and lists of lists"""
     x = open(out, 'w', encoding='utf-8')
     if type(text) is str:
         if csvStyle:
@@ -92,7 +93,7 @@ def save(text, out, csvStyle=False):
     x.close()
 
 
-def find(item, texts):
+def find(item: str, texts: list) -> str:
     """finds item in texts if they're sort of similar; retuns None if not found"""
     for i in range(len(texts)):
         txt = clean(texts[i])  # [:first])
@@ -106,7 +107,7 @@ def ls():
     for file in os.listdir():
         print(file, end='\t\t')
 
-def batchPrint(lst, batchSize = 10):
+def batchPrint(lst:list, batchSize = 10):
     """prints out the list lst batchSize lines at a time"""
     n = 0
     mx = str(int(len(lst) / batchSize))
@@ -229,7 +230,7 @@ def merge(inName, contextName, regex=defaultRegex):
 
 ### I know there's most likely already a library for this, but I wrote my own stuff
 
-def csvJoin(texts):
+def csvJoin(texts: list) -> str:
     """converts list to csv string"""
     outs = ""
     for i in texts:
@@ -237,7 +238,7 @@ def csvJoin(texts):
     return outs.strip(',')  # removes the last comma so i don't have to fence-post it
 
 
-def csvSplit(text):
+def csvSplit(text: str) -> list:
     """converts csv string to list"""
     texts = []
     curString = ""
@@ -254,12 +255,12 @@ def csvSplit(text):
     return texts
 
 
-def csvText(text):
+def csvText(text: str) -> str:
     """turns text into proper csv string"""
     return '"' + text + '"' if (',' in text) else text
 
 
-def csvColumn(texts, n, safe=True):
+def csvColumn(texts: list, n: int, safe=True) -> list:
     """return a column from a csv file"""
     outl = list()
     for i in texts:
@@ -273,7 +274,7 @@ def csvColumn(texts, n, safe=True):
     return outl
 
 
-def csvMergeColumn(fullTexts, column, n):
+def csvMergeColumn(fullTexts: list, column: list, n: int) -> list:
     """given a csv file, replace a column with the corresponding item from 'column' list in the index n"""
     outl = list()
     for i in range(len(fullTexts)):
@@ -290,7 +291,7 @@ def csvMergeColumn(fullTexts, column, n):
 ### arg is normally a predicate, but it doesn't have to be
 ### clean functions are expected to return text(s)
 
-def clean(text, rems=None, negate=False):
+def clean(text: str, rems : list = None, negate : bool = False) -> str:
     """removes rems text from text/texts"""
     if rems is None:
         rems = [' ', ',', '"']
@@ -315,7 +316,7 @@ def clean(text, rems=None, negate=False):
     return text
 
 
-def cleanFile(texts, pred=None, cleaner=None, cleanerArg=None, negatePred=False, negateClean=False):
+def cleanFile(texts: list, pred=None, cleaner=None, cleanerArg=None, negatePred=False, negateClean=False) -> list:
     """pred (remove line if false), cleaner (run on each line), cleanerArg (argument for cleaner), can negate pred/clean"""
     if cleanerArg is None:
         cleanerArg = ['\t', '\ufeff']
@@ -331,7 +332,7 @@ def cleanFile(texts, pred=None, cleaner=None, cleanerArg=None, negatePred=False,
     return outl
 
 
-def cleanWords(text, pred, negate=False):
+def cleanWords(text: str, pred, negate=False) -> str:
     """skip words that cause pred to be false, can negate predicate"""
     words = text.split(' ')
     outl = []
@@ -343,7 +344,7 @@ def cleanWords(text, pred, negate=False):
     return ' '.join(outl)  # connect the words with spaces
 
 
-def cleanChars(text, pred, negate=False):
+def cleanChars(text: str, pred, negate=False) -> str:
     """skip chars that cause pred to be false, can negate predicate"""
     outs = ""
     if type(text) is not str:
@@ -357,14 +358,14 @@ def cleanChars(text, pred, negate=False):
     return outs
 
 
-def cleanColumn(texts, n, cleaner=cleanChars, cleanerArg=p.nameChar):  # DEPENDANT ON csvColumn, cleanFile, csvMergeColumn
+def cleanColumn(texts: list, n: int, cleaner=cleanChars, cleanerArg=p.nameChar) -> list:  # DEPENDANT ON csvColumn, cleanFile, csvMergeColumn
     """run a cleaner file on a column of a csv file"""
     col = csvColumn(texts, n)
     cleanCol = cleanFile(col, cleaner=cleaner, cleanerArg=cleanerArg)
     return csvMergeColumn(texts, cleanCol, n)
 
 
-def charStrip(texts, chars, negate=False):  # negate not implemented; only for compatibility
+def charStrip(texts: [str,list], chars: [str,list], negate=False) -> list:  # negate not implemented; only for compatibility
     """removes chars from tails of texts (like trailing spaces)"""
     if type(chars) is list or type(chars) is str:
         pass
@@ -487,7 +488,7 @@ Scans a directory and compares all files inside it"""
 ### COLLECT ###
 ###############
 
-def collect(text, regex=defaultRegex, spaceMatches=False):  # basically the same as the nlp.py project, just accepts lists now
+def collect(text: [str, list], regex=defaultRegex, spaceMatches=False) -> tuple:  # basically the same as the nlp.py project, just accepts lists now
     """returns everything that matches the regex in matches, leftovers in non_matches; spaceMatches can be False, keep, or True"""
     people_re = re.compile(regex)
     matches = []
