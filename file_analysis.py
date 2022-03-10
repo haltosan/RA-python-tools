@@ -3,8 +3,9 @@ import os
 import csv
 import re
 import predicates as p  # file of predicates for cleaning functions
+from typing import Union
 #execfile(fName)
-pwd = r''
+pwd = r'.'
 defaultRegex = r'^(?P<program>(M.?\d)|(T.?\d)|(Th.?\d)|(T-Th.?\d)|(G[^a-z])|(S[^a-z])|(U[^a-z]))'
 
 YEAR_RANGE = r'[23]'  # range of acceptable values in the 10's digit of the year
@@ -61,7 +62,7 @@ def get(fileName: str, splt='\n') -> list:
     return lines
 
 
-def save(text: [str, list], out: str, csvStyle=False):
+def save(text: Union[str, list], out: str, csvStyle=False):
     """writes text to out (file name), can also do it in a csv format
 accepts string, lists, and lists of lists"""
     x = open(out, 'w', encoding='utf-8')
@@ -365,7 +366,7 @@ def cleanColumn(texts: list, n: int, cleaner=cleanChars, cleanerArg=p.nameChar) 
     return csvMergeColumn(texts, cleanCol, n)
 
 
-def charStrip(texts: [str,list], chars: [str,list], negate=False) -> list:  # negate not implemented; only for compatibility
+def charStrip(texts: Union[str,list], chars: Union[str,list], negate=False) -> list:  # negate not implemented; only for compatibility
     """removes chars from tails of texts (like trailing spaces)"""
     if type(chars) is list or type(chars) is str:
         pass
@@ -488,7 +489,7 @@ Scans a directory and compares all files inside it"""
 ### COLLECT ###
 ###############
 
-def collect(text: [str, list], regex=defaultRegex, spaceMatches=False) -> tuple:  # basically the same as the nlp.py project, just accepts lists now
+def collect(text: Union[str, list], regex=defaultRegex, spaceMatches=False) -> tuple:  # basically the same as the nlp.py project, just accepts lists now
     """returns everything that matches the regex in matches, leftovers in non_matches; spaceMatches can be False, keep, or True"""
     people_re = re.compile(regex)
     matches = []
