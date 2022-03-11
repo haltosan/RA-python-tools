@@ -2,33 +2,50 @@ from file_analysis import *
 from pandas import to_datetime
 from datetime import *
 
-x = open('test_obits.csv')
+x = open('obit_output-filtered.csv', 'r', encoding='utf-8')
 red = x.read()
 x.close()
 obits = red.split('\n')
+del obits[-1]
 del red
-db = get('test_database.csv')
+db = get('database-filtered.csv')
+del db[-1]  # last cell is blank
 okey = {'Image':0, 'First_Names':1, 'Last_Name':2, 'Death_Date_Day':3, 'Death_Date_Month':4, 'Death_Date_Year':5,
         'Birth_Date_Day':6, 'Birth_Date_Month':7, 'Birth_Date_Year':8, 'Names':9, 'Dates':10, 'Locations':11,
         'Surname_1':12, 'Surname_2':13, 'Surname_3':14, 'First_1':15, 'First_2':16, 'First_3':17}
-dkey = {'':0, 'birthlikedate':1, 'deathlikedate':2, 'surname':3, 'givenname':4, 'deathlikeplace':5,
+dkey = {'ID':0, 'birthlikedate':1, 'deathlikedate':2, 'surname':3, 'givenname':4, 'deathlikeplace':5,
         'birthlikeplace':6, 'sex':7, 'fs_url':8, 'firstname':9}
 def o(line, key):
-    return csvSplit(line)[okey[key]]
+    try:
+        return csvSplit(line)[okey[key]]
+    except IndexError as e:
+        print(line, '||', key)
+        raise e
+    raise Exception("idk how we got here:" + line + '||'+key)
 def d(line, key):
     return csvSplit(line)[dkey[key]]
 
 def dYear(dline, oline):
-    dY = to_datetime(d(dline, 'deathlikedate')).year
+    try:
+        dY = to_datetime(d(dline, 'deathlikedate')).year
+    except ValueError:
+        return False
     oY = int(o(oline, 'Death_Date_Year'))
     return dY==oY
 def bYear(dline, oline):
-    dY = to_datetime(d(dline, 'birthlikedate')).year
+    try:
+        dY = to_datetime(d(dline, 'birthlikedate')).year
+    except ValueError:
+        return False
     oY = int(o(oline, 'Birth_Date_Year'))
     return dY==oY
 def surname(dline, oline):
-    dS = d(dline, 'surname')
-    oS = o(oline, 'Last_Name')
+    try:
+        dS = d(dline, 'surname')
+        oS = o(oline, 'Last_Name')
+    except IndexError as e:
+        print(dline, '\n', oline, '\n--')
+        raise e
     return dS.lower() == oS.lower()
 def twoPlus(dline, oline):
     score = 0
@@ -39,13 +56,21 @@ def twoPlus(dline, oline):
     if bYear(dline, oline):
             score += 1
     return score >= 2
+def allThree(dline, oline):
+    if not surname(dline, oline):
+        return False
+    if not dYear(dline, oline):
+        return False
+    if not bYear(dline, oline):
+        return False
+    return True
 
 def anySur(dline, oline):
     oS = [o(oline, 'Last_Name').lower(), o(oline, 'Surname_1').lower(), o(oline, 'Surname_2').lower(), o(oline, 'Surname_3').lower()]
     dS = d(dline, 'surname')
     return dS.lower() in oS
 def anyGiven(dline, oline):
-    dG = d(dline, 'givenname')
+    dG = d(dline, 'firstname')
     oG = [o(oline, 'First_Names').lower(), o(oline, 'First_1').lower(), o(oline, 'First_2').lower(), o(oline, 'First_3').lower()]
     return dG.lower() in oG
 def twoPlusAnyName(dline, oline):
@@ -58,6 +83,14 @@ def twoPlusAnyName(dline, oline):
             score += 1
     if bYear(dline, oline):
             score += 1
+    return score >= 2
+
+def names(dline, oline):
+    score = 0
+    if anySur(dline, oline):
+        score += 1
+    if anyGiven(dline, oline):
+        score += 1
     return score >= 2
 
 def leftovers(old, output):
@@ -94,6 +127,7 @@ def fuzzyMatch(tableA: list, tableB: list, columnKey: str, matchFunction) -> tup
         aColumn = getColumn(tableA, columnKey)
         bColumn = getColumn(tableB, columnKey)
     outerLen = len(aColumn)
+    firstDone = False
     for aIndex in range(len(aColumn)):
         if aIndex == int(outerLen * .25):
             print('1/4 done')
@@ -104,6 +138,9 @@ def fuzzyMatch(tableA: list, tableB: list, columnKey: str, matchFunction) -> tup
         for bIndex in range(len(bColumn)):
             if matchFunction(aColumn[aIndex], bColumn[bIndex]) == True:
                 yield tableA[aIndex + 1], tableB[bIndex + 1]
+        if not firstDone:
+            print('first iter done')
+            firstDone = True
 
 def join(tableA: list, tableB: list, columnKey: str, matchFunction = lambda x,y : x == y, reason: str = None) -> list:
     """Combine 2 tables if they match on some column value"""
@@ -175,23 +212,103 @@ def getAll(generator) -> list:
         output.append(item)
     return out
 
-'''
->>> a = get('a.csv')
->>> b = get('b.csv')
->>> i = fuzzyMatch(a, b, 'date', lambda x, y: abs(int(x) - int(y)) < 2)
->>> for x in i:
-	print(x)
+#########################
+## DICT BASED MATCHING ##
+#########################
 
-	
-('0,Bill,Nebraska,4', '0,Nebraska,4,blue')
-('0,Bill,Nebraska,4', '1,Nebraska,5,red')
-('1,Bob,New York,5', '0,Nebraska,4,blue')
-('1,Bob,New York,5', '1,Nebraska,5,red')
-('2,Joe,California,4', '0,Nebraska,4,blue')
-('2,Joe,California,4', '1,Nebraska,5,red')
-('3,Fred,Utah,5', '0,Nebraska,4,blue')
-('3,Fred,Utah,5', '1,Nebraska,5,red')
-('4,Ted,Washington,5', '0,Nebraska,4,blue')
-('4,Ted,Washington,5', '1,Nebraska,5,red')
+def buildDict(keyCol: list, dataCol: list) -> dict:
+    """Creates a dictionary that has a key column value correspond to some data column value.
+For example, if key=name and data=id, dict['Bob'] would return a set of id's that have the name Bob.
+Another use is looking up rows by value. If key=id and data=entireTable, dict[5] would be the rows that have an id of 5"""
+    out = dict()
+    for i in range(len(keyCol)):
+        key = keyCol[i].lower()
+        data = dataCol[i].lower()
+        if key not in out:
+            out[key] = set()
+        out[key].add(data)
+    return out
+
+def dictMatch(tableA: list, tableB: list, keyA: str, keyB: str) -> (list, set, set):
+    out = list()  # matches
+    aLeftover = set(tableA)  # items from the tables that weren't matched
+    bLeftover = set(tableB)
+    
+    matchDict = buildDict(getColumn(tableA, keyA), getColumn(tableA, 'ID'))
+    fullDict = buildDict(getColumn(tableA, 'ID'), tableA[1:])  # [1:] to remove the header line
+    colB = getColumn(tableB, keyB)
+    tableB = tableB[1:]  # remove the header line
+    mx = len(colB)  # max iterations
+    for i in range(len(colB)):
+        key = colB[i].lower()
+        if not key in matchDict:  # if we can't find it, move on
+            continue
+        idSet = matchDict[key]  # get the id's for a given key that matches
+        for ID in idSet:
+            rowB = tableB[i]
+            rowA = list(fullDict[ID])[0]  # cast to a list, then use the 1st (and only) element
+            
+            if names(rowA, rowB):
+                out.append([rowA, rowB])  # save the matching rows
+                try:
+                    aLeftover.remove(rowA)  # remove these from further runs
+                except KeyError:  # the value could have been removed before; ignore this
+                    pass
+                try:
+                    bLeftover.remove(rowB)
+                except KeyError:
+                    pass
+                
+        if i == int(mx * .1):  # progress indication
+            print('10% done')
+        if i == int(mx * .25):
+            print('25% done')
+        elif i == int(mx * .5):
+            print('50% done')
+        elif i == int(mx * .75):
+            print('75% done')
+        
+    return out, aLeftover, bLeftover
+
 
 '''
+make db dict based on name
+for entry in obit:
+    if not in dict : fail
+    dbEntry = db[entry.name]
+    if dbEntry.dYear == entry.dYear or dbEntry.bYear == entry.bYear:
+        MATCH
+'''
+
+'''
+a = get('test_database.csv')
+a[0] = csvJoin(['id'] + tableKeys(a)[1:])
+x = open('test_obits.csv')
+b = x.read().split('\n'); del x
+del a[-1]
+del b[-1]
+'''
+
+def dictResult(r: list, h: list) -> list:
+    out = list()
+    out.append(h)
+    for i in r:
+        out.append(i[0]+','+i[1])
+    return out
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
