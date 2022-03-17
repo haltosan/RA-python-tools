@@ -2,13 +2,13 @@ from file_analysis import *
 from pandas import to_datetime
 from datetime import *
 
-x = open('obit_output-filtered.csv', 'r', encoding='utf-8')
+x = open('obit_output-filtered-twoPlus-surname.csv', 'r', encoding='utf-8')
 red = x.read()
 x.close()
 obits = red.split('\n')
 del obits[-1]
 del red
-db = get('database-filtered.csv')
+db = get('database-filtered-twoPlus-surname.csv')
 del db[-1]  # last cell is blank
 okey = {'Image':0, 'First_Names':1, 'Last_Name':2, 'Death_Date_Day':3, 'Death_Date_Month':4, 'Death_Date_Year':5,
         'Birth_Date_Day':6, 'Birth_Date_Month':7, 'Birth_Date_Year':8, 'Names':9, 'Dates':10, 'Locations':11,
@@ -93,12 +93,17 @@ def names(dline, oline):
         score += 1
     return score >= 2
 
-def leftovers(old, output):
-    idSet = set(getColumn(old, 'id'))
-    outID = getColumn(output, 'id')
-    for i in range(len(output)):
-        if outID[i] not in idSet:
-            yield output[i]
+def leftovers(original: list, result: list, uniqueColumn: str = 'ID'):
+    """Keep all lines from original that don't match any value from result based on some uniqueColumn. For example, remove all obits that appear in the output based on ID"""
+    idSet = set(getColumn(result, uniqueColumn))
+    origID = getColumn(original, uniqueColumn)
+    for i in range(len(origID)):
+        try:
+            if origID[i] not in idSet:
+                yield original[i + 1]  # account for header being removed
+        except IndexError as exception:
+            print('i', i, 'origID', len(origID), 'idSet', len(idSet), 'original', len(original), 'result', len(result))
+            return
 
 def getColumn(table: list, key: str) -> list:
     """Get a column from a csv file (as produced by file_analysis.get(fname))"""
@@ -210,7 +215,7 @@ def getAll(generator) -> list:
     output = []
     for item in generator:
         output.append(item)
-    return out
+    return output
 
 #########################
 ## DICT BASED MATCHING ##
@@ -229,10 +234,9 @@ Another use is looking up rows by value. If key=id and data=entireTable, dict[5]
         out[key].add(data)
     return out
 
-def dictMatch(tableA: list, tableB: list, keyA: str, keyB: str) -> (list, set, set):
+def dictMatch(tableA: list, tableB: list, keyA: str, keyB: str, header: list, matchFunction = lambda dbLine, obitsLine: dbLine == obitsLine) -> list:
     out = list()  # matches
-    aLeftover = set(tableA)  # items from the tables that weren't matched
-    bLeftover = set(tableB)
+    out.append(csvJoin(header))
     
     matchDict = buildDict(getColumn(tableA, keyA), getColumn(tableA, 'ID'))
     fullDict = buildDict(getColumn(tableA, 'ID'), tableA[1:])  # [1:] to remove the header line
@@ -248,16 +252,8 @@ def dictMatch(tableA: list, tableB: list, keyA: str, keyB: str) -> (list, set, s
             rowB = tableB[i]
             rowA = list(fullDict[ID])[0]  # cast to a list, then use the 1st (and only) element
             
-            if names(rowA, rowB):
-                out.append([rowA, rowB])  # save the matching rows
-                try:
-                    aLeftover.remove(rowA)  # remove these from further runs
-                except KeyError:  # the value could have been removed before; ignore this
-                    pass
-                try:
-                    bLeftover.remove(rowB)
-                except KeyError:
-                    pass
+            if matchFunction(rowA, rowB):
+                out.append(rowA + ',' + rowB)  # save the matching rows
                 
         if i == int(mx * .1):  # progress indication
             print('10% done')
@@ -267,9 +263,35 @@ def dictMatch(tableA: list, tableB: list, keyA: str, keyB: str) -> (list, set, s
             print('50% done')
         elif i == int(mx * .75):
             print('75% done')
-        
-    return out, aLeftover, bLeftover
 
+    return out
+
+def dictFuzzyMatch(tableA: list, tableB: list, keyA: str, keyB: str, matchFunction = lambda aValue, bValue: aValue == bValue) -> list:
+    out = list()
+    matchDict = buildDict(getColumn(tableA, keyA), getColumn(tableA, 'ID'))
+    fullDict = buildDict(getColumn(tableA, 'ID'), tableA[1:])  # [1:] to remove the header line
+    colB = getColumn(tableB, keyB)
+    mx = len(colB)
+    for i in range(len(colB)):
+        for key in matchDict:
+            return None
+
+
+def matchFull(matchFunction = lambda dbLine, obitLine: dbLine == obitLine, saveName = None, dbLeftoverName = None, obitLeftoverName = None):
+    if saveName is None:
+        saveName = input('Save file name: ')
+    if dbLeftoverName is None:
+        dbLeftoverName = input('DB leftover name: ')
+    if obitLeftoverName is None:
+        obitLeftoverName = input('Obit leftover name: ')
+        
+    matched = dictMatch(db, obits, 'surname', 'Last_Name', tableKeys(db) + tableKeys(obits), matchFunction)
+    save(matched, saveName)
+    dbLeftover = getAll(leftovers(db, matched, 'ID'))
+    obitLeftover = getAll(leftovers(obits, matched, 'Image'))
+    save(dbLeftover, dbLeftoverName)
+    save(obitLeftover, obitLeftoverName)
+    
 
 '''
 make db dict based on name
@@ -291,7 +313,7 @@ del b[-1]
 
 def dictResult(r: list, h: list) -> list:
     out = list()
-    out.append(h)
+    out.append(csvJoin(h))
     for i in r:
         out.append(i[0]+','+i[1])
     return out

@@ -62,8 +62,8 @@ label_map = PRIMA_LABEL_MAP
 imageFolder = PRIMA_TEXT_LABEL
 # params for pdf2image
 PDF_2_IMAGE_THREADS = 1
-IMAGE_QUALITY = 300
-poppler_path = r'V:\FHSS-JoePriceResearch\papers\current\SAT_yearbooks\poppler-20.12.1\Library\bin'
+IMAGE_QUALITY = 500
+poppler_path = r'V:\FHSS-JoePriceResearch\papers\current\college_dataset\SAT_yearbooks\poppler-20.12.1\Library\bin'
 startPage, endPage = 0, 0
 # tesseract path
 pytesseract.pytesseract.tesseract_cmd = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\Tesseract-OCR\tesseract.exe'
@@ -458,7 +458,7 @@ def main():
     print('\n\n#Running OCR#', flush = True)
     text = ocr(textRegions, images)
 
-    text = addPageLabels(text)
+    text = addPageLabels(text, 'img')
 
     save(text, outTextPath)
 
