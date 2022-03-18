@@ -8,13 +8,13 @@ x.close()
 obits = red.split('\n')
 del obits[-1]
 del red
-db = get('database-filtered-twoPlus-surname.csv')
+db = get('database with death year.csv')
 del db[-1]  # last cell is blank
 okey = {'Image':0, 'First_Names':1, 'Last_Name':2, 'Death_Date_Day':3, 'Death_Date_Month':4, 'Death_Date_Year':5,
         'Birth_Date_Day':6, 'Birth_Date_Month':7, 'Birth_Date_Year':8, 'Names':9, 'Dates':10, 'Locations':11,
         'Surname_1':12, 'Surname_2':13, 'Surname_3':14, 'First_1':15, 'First_2':16, 'First_3':17}
-dkey = {'ID':0, 'birthlikedate':1, 'deathlikedate':2, 'surname':3, 'givenname':4, 'deathlikeplace':5,
-        'birthlikeplace':6, 'sex':7, 'fs_url':8, 'firstname':9}
+dkey = {'ID':0, 'birthlikedate':1, 'birthyear':2, 'deathlikedate':3, 'deathyear':4, 'surname':5, 'givenname':6,
+        'deathlikeplace':7, 'birthlikeplace':8, 'sex':9, 'fs_url':10, 'firstname':11}
 def o(line, key):
     try:
         return csvSplit(line)[okey[key]]
@@ -23,8 +23,12 @@ def o(line, key):
         raise e
     raise Exception("idk how we got here:" + line + '||'+key)
 def d(line, key):
-    return csvSplit(line)[dkey[key]]
-
+    try:
+        return csvSplit(line)[dkey[key]]
+    except IndexError as e:
+        print(line, '\n||\n', key)
+        raise e
+    raise Exception('idk how we got here:' + line + '\n||\n' + key)
 def dYear(dline, oline):
     try:
         dY = to_datetime(d(dline, 'deathlikedate')).year
@@ -91,7 +95,9 @@ def names(dline, oline):
         score += 1
     if anyGiven(dline, oline):
         score += 1
-    return score >= 2
+    return score > 0
+
+
 
 def leftovers(original: list, result: list, uniqueColumn: str = 'ID'):
     """Keep all lines from original that don't match any value from result based on some uniqueColumn. For example, remove all obits that appear in the output based on ID"""
@@ -266,16 +272,71 @@ def dictMatch(tableA: list, tableB: list, keyA: str, keyB: str, header: list, ma
 
     return out
 
-def dictFuzzyMatch(tableA: list, tableB: list, keyA: str, keyB: str, matchFunction = lambda aValue, bValue: aValue == bValue) -> list:
-    out = list()
-    matchDict = buildDict(getColumn(tableA, keyA), getColumn(tableA, 'ID'))
-    fullDict = buildDict(getColumn(tableA, 'ID'), tableA[1:])  # [1:] to remove the header line
-    colB = getColumn(tableB, keyB)
-    mx = len(colB)
-    for i in range(len(colB)):
-        for key in matchDict:
-            return None
+def scoreRows(dline, oline):
+    score = 0
+    if surname(dline, oline):
+        score += 1
+    if dYear(dline, oline):
+        score += 1
+    if bYear(dline, oline):
+        score += 1
 
+    return score
+    
+
+def dictNameMatch(tableA: list, tableB: list, header: list, matchFunction = lambda aValue, bValue: aValue == bValue) -> list:
+    out = list()
+    out.append(csvJoin(header))
+    
+    surnameDict = buildDict(getColumn(tableA, 'surname'), tableA[1:])
+    firstnameDict = buildDict(getColumn(tableA, 'firstname'), tableA[1:])
+    tableB = tableB[1:]
+    mx = len(tableB)
+    for i in range(len(tableB)): #'Surname_1':12, 'Surname_2':13, 'Surname_3':14, 'First_1':15, 'First_2':16, 'First_3':17
+        fname1 = o(tableB[i], 'First_1').lower()
+        fname2 = o(tableB[i], 'First_2').lower()
+        fname3 = o(tableB[i], 'First_3').lower()
+        lname1 = o(tableB[i], 'Surname_1').lower()
+        lname2 = o(tableB[i], 'Surname_2').lower()
+        lname3 = o(tableB[i], 'Surname_3').lower()
+        fnames = [fname1, fname2, fname3]
+        lnames = [lname1, lname2, lname3]
+        
+        maxScore = -1
+        maxRow = ''
+        rowB = tableB[i]
+        for name in fnames:
+            if name == ' ' or len(name) < 1:
+                continue
+            if name in firstnameDict:
+                for rowA in firstnameDict[name]:
+                    rowScore = scoreRows(rowA, rowB)
+                    if rowScore > maxScore:
+                        maxScore = rowScore
+                        maxRow = rowA
+            
+        for name in lnames:
+            if name == ' ' or len(name) < 1:
+                continue
+            if name in surnameDict:
+                for rowA in surnameDict[name]:
+                    rowScore = scoreRows(rowA, rowB)
+                    if rowScore > maxScore:
+                        maxScore = rowScore
+                        maxRow = rowA
+
+        if maxScore != -1:
+            out.append(maxRow + ',' + rowB)
+                    
+        if i == int(mx * .1):
+            print('10% done')
+        elif i == int(mx * .25):
+            print('25% done')
+        elif i == int(mx * .5):
+            print('50% done')
+        elif i == int(mx * .75):
+            print('75% done')
+    return out
 
 def matchFull(matchFunction = lambda dbLine, obitLine: dbLine == obitLine, saveName = None, dbLeftoverName = None, obitLeftoverName = None):
     if saveName is None:
