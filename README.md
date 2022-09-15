@@ -1,6 +1,6 @@
 # RA-python-tools
 
-**See the [contributing](https://github.com/haltosan/RA-python-tools/wiki/Contributing) section to get started and learn the conventions of this Github page.**
+**See the [contributing](https://github.com/haltosan/RA-python-tools/blob/main/CONTRIBUTING.md) file to get started and learn the conventions of this Github page.**
 
 The code here is a collection of some tools the team has written to help automate tasks during work. The majority of the tasks involve natural language processing, optical character recognition, and some misc AI.
 
