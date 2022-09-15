@@ -6,4 +6,4 @@ The code here is a collection of some tools the team has written to help automat
 
 Visit the [wiki](https://github.com/haltosan/RA-python-tools/wiki) for syntax and usage.
 
-The experimental file is just tinkering around with functions that either didn't work or were only used for a specific use case, and are therefore not that useful.
+The experimental directory is just tinkering around with functions that either didn't work or were only used for a specific use case, and are therefore not that useful.
