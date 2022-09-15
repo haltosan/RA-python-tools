@@ -1,14 +1,13 @@
 import os
 
+TESSERACT_PATH = r'V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\Tesseract-OCR\tesseract.exe'
+
 def tess(args):
-    os.system(r'cmd /k "V:\FHSS-JoePriceResearch\RA_work_folders\Ethan_Simmons\Tesseract-OCR\tesseract.exe ' + args + '"')
+    os.system(r'cmd /k "' + TESSERACT_PATH + ' ' + args + '"')
 
 
 def oneWord():
     return '--psm 8'
-
-def printOut():
-    return 'stdout'
 
 def tesseract(inSource, outSource, options=[]):
     args = []
@@ -17,9 +16,12 @@ def tesseract(inSource, outSource, options=[]):
     else:
         args.append('"'+inSource+'"')
     if outSource == 'print' or outSource == 'terminal':
-        args.append(printOut())
+        args.append('stdout')
     else:
         args.append('"'+outSource+'"')
-    for option in options:
+    if type(options) is list:
+        for option in options:
+            args.append(option)
+    elif type(options) is str:
         args.append(option)
     tess(' '.join(args))
