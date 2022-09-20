@@ -122,6 +122,16 @@ def batchPrint(lst:list, batchSize = 10):
 ### CHECK FILE FUNCTIONS ###
 ############################
 
+def findClasses(find : list, noFind : list) -> int:
+    """returns how often find appears and noFind doesn't appear"""
+    count = 0
+    for i in missedLines:
+        if len(i) > 0:
+            if all([f in i[0] for f in find]) and all([not f in i[0] for f in noFind]):
+                count += 1
+    return count
+
+
 def calcScores(raw, check):
     """records errors per page"""
     scores = []
