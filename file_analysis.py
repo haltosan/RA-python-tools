@@ -114,7 +114,9 @@ def batchPrint(lst:list, batchSize = 10):
     mx = str(int(len(lst) / batchSize))
     for i in lst:
         if n%batchSize == 0:
-            input('[' + str(int(n / batchSize)) + '/' + mx + ']')
+            q = input('\t\t\t\t\t\t\t\t\t\t[' + str(int(n / batchSize)) + '/' + mx + ']')
+            if q == 'q':
+                return
         print(i)
         n+=1
 
@@ -378,9 +380,7 @@ def cleanColumn(texts: list, n: int, cleaner=cleanChars, cleanerArg=p.nameChar) 
 
 def charStrip(texts: Union[str,list], chars: Union[str,list], negate=False) -> list:  # negate not implemented; only for compatibility
     """removes chars from tails of texts (like trailing spaces)"""
-    if type(chars) is list or type(chars) is str:
-        pass
-    else:
+    if not(type(chars) is list or type(chars) is str):
         raise TypeError("Unknown type for chars arg")
     
     if type(texts) is str:
@@ -431,9 +431,7 @@ def ghostBuster(f, quiet = True):  # finds lines that start with a strange lette
             line = f[lnIndex]
             if clean(line, ' "')[0] != trump:  # if the line doesn't start with the most common letter it is most likely an anomaly
                 if (i <= int(blockSize*.3) or i>= blockSize - int(blockSize*.3)):  # if it's in the first or last 30% it could be on the border of 2 sections (aaaabbb) and is therefore not an anomaly
-                    if borderBlocks(lnIndex, f, quiet):
-                        pass
-                    else:
+                    if not borderBlocks(lnIndex, f, quiet):
                         outl.append([line, trump])  # anomaly; failed border detection
                 else:
                     outl.append([line, trump])  # anomaly; not near border
@@ -584,9 +582,7 @@ def infoGrab(fname, outName):  # DEPENDANT ON csvColumn, csvMergeColumn, save
     for i in range(len(names)):
         if ',' in names[i]:
             cIndex = names[i].index(',')
-            if 'Jr' in names[i][cIndex:] or 'JR' in names[i][cIndex:]:
-                pass
-            else:
+            if not('Jr' in names[i][cIndex:] or 'JR' in names[i][cIndex:]):
                 info[i] = names[i][cIndex:] + ', ' + info[i]
                 names[i] = names[i][:cIndex]
     o1 = csvMergeColumn(f, names, 0)
