@@ -2,8 +2,10 @@ import os
 import sys
 from pdf2image import convert_from_path
 
-IMAGE_QUALITY = 300
+IMAGE_QUALITY = 400
+MAX_PAGES = 200
 poppler_path = r'V:\FHSS-JoePriceResearch\papers\current\college_dataset\SAT_yearbooks\poppler-20.12.1\Library\bin'
+
 
 def pdfToImages(pdfPath, imageFolder):
     """Convert each page of a pdf to an image and save to imageFolder"""
@@ -12,7 +14,7 @@ def pdfToImages(pdfPath, imageFolder):
     except:
         print(' Images in', imageFolder)
     # Image output naming convention: pageNum.png
-    for pageNum in range(1, 200):
+    for pageNum in range(1, MAX_PAGES):
         print('  Imaging page', str(pageNum) + '...')
         try:
             page = convert_from_path(pdfPath, IMAGE_QUALITY, first_page = pageNum, last_page = pageNum, poppler_path = poppler_path, thread_count = 1)[0]
