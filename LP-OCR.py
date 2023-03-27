@@ -2,7 +2,7 @@
 Authors: Ethan, Sarah, Annie
 Requires the record_linking environment (specific dectron2, pywin32, etc. versions)
 
-Docs: https://github.com/haltosan/RA-python-tools/wiki/Layout-Parser
+Docs: https://github.com/haltosan/RA-python-tools/wiki
 """
 
 print('Importing', flush = True, end='...')
